@@ -497,11 +497,23 @@
   .doc-spec{font-size:12.5px;color:var(--muted)}
   .doc-hours{font-size:12.5px;color:var(--amber)}
 
+  /* ---------- Phones: full-screen chat that follows the on-screen keyboard ---------- */
   @media (max-width:560px){
-    .chat-window{right:0;bottom:0;width:100%;height:100%;height:100dvh;border-radius:0}
+    .chat-window{top:0;left:0;right:0;bottom:auto;width:100%;max-width:100vw;height:100%;height:var(--bs-vh,100dvh);border-radius:0;transform-origin:bottom center}
+    .open .chat-window{transform:translateY(var(--bs-top,0px))}
     .open .chat-launcher{opacity:0;pointer-events:none}
-    .chat-launcher{right:16px;bottom:16px}
-    .chat-tooltip{right:88px;bottom:29px}
+    .chat-launcher{right:16px;bottom:calc(16px + env(safe-area-inset-bottom));width:60px;height:60px}
+    .chat-tooltip{right:86px;bottom:calc(28px + env(safe-area-inset-bottom));max-width:calc(100vw - 110px);white-space:normal}
+    .chat-head{padding-top:calc(12px + env(safe-area-inset-top));padding-left:calc(14px + env(safe-area-inset-left));padding-right:calc(12px + env(safe-area-inset-right))}
+    .head-btn{width:44px;height:44px}
+    .chat-body{padding-top:calc(90px + env(safe-area-inset-top));overflow-x:hidden;overscroll-behavior:contain}
+    .msg .col{max-width:calc(100% - 36px)}
+    .price-list,.summary{min-width:0}
+    .chips{padding-left:12px;padding-right:12px}
+    .chip{min-height:44px;padding:0 16px;display:inline-flex;align-items:center;max-width:100%;white-space:normal;text-align:left}
+    .doc-card{min-height:44px}
+    .chat-input{padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+    .chat-input input{font-size:16px;min-height:46px}
   }
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
   `;
@@ -1801,6 +1813,7 @@
     hideTooltip(); setUnread(0);
     if (isMobile()) { prevBodyOverflow = document.body.style.overflow; document.body.style.overflow = "hidden"; }
     if (!started) { started = true; welcome(); }
+    fitToViewport();
     setTimeout(() => { if (!isMobile()) input.focus(); }, 320);
   }
   function closeChat() {
@@ -1808,7 +1821,20 @@
     launcher.setAttribute("aria-expanded", "false");
     launcher.setAttribute("aria-label", "Open chat");
     document.body.style.overflow = prevBodyOverflow;
+    fitToViewport();
   }
+
+  // Phones: size the chat to the *visible* area, so the input box stays above the on-screen keyboard
+  const vv = window.visualViewport;
+  function fitToViewport() {
+    if (!vv || !isOpen() || !isMobile()) { root.style.removeProperty("--bs-vh"); root.style.removeProperty("--bs-top"); return; }
+    root.style.setProperty("--bs-vh", vv.height + "px");
+    root.style.setProperty("--bs-top", vv.offsetTop + "px");
+    scrollDown();
+  }
+  if (vv) { vv.addEventListener("resize", fitToViewport); vv.addEventListener("scroll", fitToViewport); }
+  window.addEventListener("resize", fitToViewport);
+  input.addEventListener("focus", () => setTimeout(fitToViewport, 300));
   function welcome() {
     const sep = document.createElement("div");
     sep.className = "day-sep"; sep.textContent = "Today";

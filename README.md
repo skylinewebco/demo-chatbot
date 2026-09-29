@@ -2,7 +2,7 @@
 
 A ready-to-use AI receptionist chatbot for a dental clinic ("Bright Smile Dental Clinic" — a fictional demo). It runs entirely in the browser with no API key and no dependencies.
 
-**Live demo:** https://skylinewebco.github.io/demo-chatbot/test.html
+**Live demo:** https://skylinewebco.github.io/demo-chatbot/
 
 ## What it does
 
@@ -30,4 +30,5 @@ All clinic details (name, phone numbers, hours, prices, doctors, and Q&A) live i
 ## Files
 
 - `chatbot.js` — the complete chatbot (design, logic and configuration)
-- `test.html` — a blank page for testing the chatbot on its own
+- `index.html` — a blank page for testing the chatbot on its own
+- `netlify.toml` — Netlify settings (serves the project root, no build step)
