@@ -3,9 +3,146 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
-<title>Demo Chatbot</title>
+<title>AI Chatbot Demos by Skyline Web Co</title>
+<meta name="description" content="Live AI chatbot demos for dental clinics, restaurants, real estate, beauty salons and gyms.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{ --bg:#0D0D0F; --card:#16161B; --line:rgba(255,255,255,.08); --text:#F5F0E8; --muted:#A39D94; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{min-height:100vh;min-height:100dvh;background:var(--bg);color:var(--text);font-family:Outfit,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-weight:300;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+    background-image:radial-gradient(600px 400px at 10% -5%,rgba(255,184,0,.10),transparent 70%),radial-gradient(600px 420px at 100% 30%,rgba(129,140,248,.10),transparent 70%),radial-gradient(rgba(255,255,255,.045) 1px,transparent 1.3px);
+    background-size:auto,auto,18px 18px;background-attachment:fixed}
+  .wrap{max-width:1080px;margin:0 auto;padding:56px 16px 120px}
+  [hidden]{display:none!important}
+
+  /* Landing */
+  .brand{display:inline-flex;align-items:center;gap:8px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:500}
+  .brand i{width:8px;height:8px;border-radius:50%;background:#3CCFB4;box-shadow:0 0 10px rgba(60,207,180,.8)}
+  h1{font-size:clamp(30px,5vw,48px);line-height:1.1;letter-spacing:-.02em;font-weight:600;margin:14px 0 12px}
+  h1 span{background:linear-gradient(90deg,#FFB800,#FF4D2E 35%,#E879F9 70%,#818CF8);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lead{color:var(--muted);font-size:17px;max-width:620px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:16px;margin-top:40px}
+  .card{position:relative;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:22px;color:var(--text);font:inherit;cursor:pointer;
+    display:flex;flex-direction:column;gap:10px;min-height:210px;transition:transform .2s,border-color .2s,box-shadow .2s;overflow:hidden}
+  .card::before{content:"";position:absolute;inset:0;background:radial-gradient(300px 160px at 100% 0%,var(--glow),transparent 70%);opacity:.9;pointer-events:none}
+  .card:hover,.card:focus-visible{transform:translateY(-3px);border-color:var(--a1);box-shadow:0 18px 40px -20px var(--a1);outline:none}
+  .card.active{border-color:var(--a1);box-shadow:0 0 0 1px var(--a1),0 18px 40px -20px var(--a1)}
+  .ico{position:relative;width:48px;height:48px;border-radius:14px;display:grid;place-items:center;color:#0D0D0F;background:linear-gradient(135deg,var(--a1),var(--a2))}
+  .ind{position:relative;font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--a1);font-weight:500;margin-top:4px}
+  .biz{position:relative;font-size:21px;font-weight:600;letter-spacing:-.01em}
+  .tag{position:relative;color:var(--muted);font-size:14.5px;flex:1}
+  .row{position:relative;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px}
+  .try{font-weight:500;font-size:14.5px;color:var(--text);display:inline-flex;align-items:center;gap:6px;min-height:44px}
+  .try b{color:var(--a1);font-weight:500}
+  .link{font-size:13px;color:var(--muted);text-decoration:none;padding:10px 12px;border-radius:12px;border:1px solid var(--line);min-height:44px;display:inline-flex;align-items:center}
+  .link:hover{color:var(--text);border-color:var(--a1)}
+  .hint{margin-top:28px;color:var(--muted);font-size:14px}
+  .foot{margin-top:56px;color:#6f6a64;font-size:13px}
+
+  /* Single-business page (?type=…) */
+  .solo{min-height:calc(100vh - 120px);min-height:calc(100dvh - 120px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px}
+  .solo .ico{width:64px;height:64px;border-radius:18px}
+  .solo h1{margin:4px 0 0}
+  .solo p{color:var(--muted);font-size:17px;max-width:460px}
+
+  @media (max-width:560px){ .wrap{padding:36px 16px 110px} .lead{font-size:16px} .card{min-height:0} }
+</style>
 </head>
 <body>
-<script src="chatbot.js"></script>
+  <main class="wrap">
+    <!-- Landing page (no ?type) -->
+    <section id="landing" hidden>
+      <div class="brand"><i></i>Skyline Web Co · Live demos</div>
+      <h1>AI Chatbot Demos by <span>Skyline Web Co</span></h1>
+      <p class="lead">Pick an industry to try its AI assistant — each one answers questions about its own business and books appointments, tables or viewings, 24/7.</p>
+      <div class="grid" id="cards"></div>
+      <p class="hint">Tip: tap a card, then chat in the window that opens. Use the grid button in the chat header to switch industries.</p>
+      <p class="foot">© Skyline Web Co · Fictional businesses for demonstration only.</p>
+    </section>
+
+    <!-- Single business page (?type=dental etc.) -->
+    <section id="solo" class="solo" hidden>
+      <div class="ico" id="soloIco"></div>
+      <h1 id="soloName"></h1>
+      <p id="soloLine"></p>
+    </section>
+  </main>
+
+  <!-- One engine + one config per business -->
+  <script src="configs/dental.js"></script>
+  <script src="configs/restaurant.js"></script>
+  <script src="configs/realestate.js"></script>
+  <script src="configs/salon.js"></script>
+  <script src="configs/gym.js"></script>
+  <script src="chatbot.js" data-manual></script>
+
+  <script>
+    (function () {
+      const ORDER = ["dental", "restaurant", "realestate", "salon", "gym"];
+      const ICONS = {
+        tooth: '<path d="M12 5.5C10.3 4.3 8.9 3.5 7.2 3.5 4.8 3.5 3 5.5 3 8c0 2.4 1 3.9 1.6 6 .6 2.3.8 4.6 1.6 6.3.5 1 1.8.9 2.1-.2l1.1-4.2c.6-1.4 4.6-1.4 5.2 0l1.1 4.2c.3 1.1 1.6 1.2 2.1.2.8-1.7 1-4 1.6-6.3.6-2.1 1.6-3.6 1.6-6 0-2.5-1.8-4.5-4.2-4.5-1.7 0-3.1.8-4.8 2z"/>',
+        dish: '<path d="M4 3v7a3 3 0 0 0 3 3v8M7 3v6M10 3v7a3 3 0 0 1-3 3"/><path d="M17 21V3c-2.2 0-4 2.5-4 6.5 0 2.3 1.2 3.5 4 3.5"/>',
+        home: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
+        scissors: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.1 8.1L20 20M8.1 15.9L20 4"/>',
+        dumbbell: '<path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/>'
+      };
+      const svg = (name, size) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ""}</svg>`;
+      const rgba = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; };
+      const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+      const cfgs = window.ChatbotConfigs;
+      const type = (new URLSearchParams(location.search).get("type") || "").toLowerCase();
+
+      if (cfgs[type]) {
+        // Direct link: only this business, chatbot opens automatically, no mention of other industries
+        const c = cfgs[type];
+        document.title = `${c.business.name} – AI Chatbot Demo`;
+        const ico = document.getElementById("soloIco");
+        ico.style.setProperty("--a1", c.theme.accent); ico.style.setProperty("--a2", c.theme.accent2);
+        ico.innerHTML = svg(c.theme.icon, 30);
+        document.getElementById("soloName").textContent = c.business.name;
+        document.getElementById("soloLine").textContent = "Welcome! Our assistant is here to help — just chat below.";
+        document.body.style.backgroundImage = `radial-gradient(600px 400px at 50% 0%,${rgba(c.theme.accent, .12)},transparent 70%),radial-gradient(rgba(255,255,255,.045) 1px,transparent 1.3px)`;
+        document.body.style.backgroundSize = "auto,18px 18px";
+        document.getElementById("solo").hidden = false;
+        DemoChatbot.mount(type, { open: true, openDelay: 600 });
+        return;
+      }
+
+      // Landing page with all industries
+      const landing = document.getElementById("landing");
+      const grid = document.getElementById("cards");
+      landing.hidden = false;
+      ORDER.filter((k) => cfgs[k]).forEach((k) => {
+        const c = cfgs[k];
+        const card = document.createElement("div");
+        card.className = "card"; card.tabIndex = 0; card.setAttribute("role", "button"); card.dataset.type = k;
+        card.style.setProperty("--a1", c.theme.accent); card.style.setProperty("--a2", c.theme.accent2); card.style.setProperty("--glow", rgba(c.theme.accent, .14));
+        card.setAttribute("aria-label", `Try the ${c.industry} chatbot: ${c.business.name}`);
+        card.innerHTML = `<div class="ico">${svg(c.theme.icon, 24)}</div><div class="ind">${esc(c.industry)}</div><div class="biz">${esc(c.business.name)}</div>` +
+          `<div class="tag">${esc(c.tagline || "")}</div><div class="row"><span class="try">Try the chatbot <b>→</b></span>` +
+          `<a class="link" href="?type=${k}" target="_blank" rel="noopener" title="Open the direct link for this business">Direct link ↗</a></div>`;
+        const choose = () => select(k, true);
+        card.addEventListener("click", (e) => { if (!e.target.closest(".link")) choose(); });
+        card.addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && !e.target.closest(".link")) { e.preventDefault(); choose(); } });
+        grid.appendChild(card);
+      });
+
+      function select(k, open) {
+        const c = cfgs[k];
+        document.title = `${c.business.name} – AI Chatbot Demo`;
+        grid.querySelectorAll(".card").forEach((el) => el.classList.toggle("active", el.dataset.type === k));
+        DemoChatbot.mount(k, { open, openDelay: 150, onSwitch: backToCards });
+      }
+      function backToCards() {
+        document.title = "AI Chatbot Demos by Skyline Web Co";
+        grid.scrollIntoView({ behavior: "smooth", block: "start" });
+        const active = grid.querySelector(".card.active");
+        if (active) active.focus({ preventScroll: true });
+      }
+    })();
+  </script>
 </body>
 </html>

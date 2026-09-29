@@ -1,370 +1,165 @@
 /*!
- * Bright Smile Dental Clinic — Chatbot widget (standalone)
+ * Demo Chatbot engine — by Skyline Web Co
  * ---------------------------------------------------------
- * Install on ANY website by adding one line before </body>:
+ * ONE engine, many businesses. Each business is a config file in /configs.
+ *
+ * Install on ANY website (the config file is loaded automatically):
+ *     <script src="chatbot.js" data-type="dental"></script>
+ * or load the config yourself first:
+ *     <script src="configs/restaurant.js"></script>
  *     <script src="chatbot.js"></script>
  *
- * The widget renders inside a Shadow DOM, so the host website's CSS
- * can't break it (and the widget's CSS can't affect the website).
- * No API key, no dependencies. Edit the CONFIG object below per client.
- * Dark theme: black background, amber/red accents (colors in the CSS block).
+ * New client? Copy a file in /configs, rename it, edit the data — done.
+ * The widget renders inside a Shadow DOM, so the host website's CSS can't
+ * break it. No API key, no dependencies.
  */
 (function () {
   "use strict";
-  if (window.__brightSmileChatLoaded) return;          // prevent double-loading
-  window.__brightSmileChatLoaded = true;
+  if (window.DemoChatbot) return;                                   // prevent double-loading
+  const REGISTRY = (window.ChatbotConfigs = window.ChatbotConfigs || {});
+  const SCRIPT = document.currentScript;
 
   /* =====================================================================
-     CLINIC CONFIG — the ONLY thing you need to edit for a new client.
+     DEFAULT TEXTS — any config can override these in bot.replies.
+     {noun} = "appointment" / "reservation" / "viewing" …, {Noun} = capitalised.
      ===================================================================== */
-  const CONFIG = {
-    clinic: {
-      name: "Bright Smile Dental Clinic",
-      shortName: "Bright Smile",
-      address: "123 Main Street",
-      city: "Springfield",                         // ← replace with the client's city
-      phone: "+1 (555) 123-4567",                  // reception (also used for WhatsApp below)
-      whatsapp: "+1 (555) 123-4567",
-      emergencyPhone: "+1 (555) 000-0000",
-      email: "hello@brightsmiledental.com"
-    },
+  const DEFAULT_TEXT = {
+    outOfScope: "Sorry, I can't help with that. Feel free to ask me anything about {business}! 😊",
+    fallback: "That's a great question for our team. Please give us a call at {phone} and we'll be happy to help.",
+    rephrase: "Sorry, I didn't quite catch that. Could you rephrase?",
+    continueBooking: "Would you like to continue with your booking?",
+    continueRequest: "Would you like to continue with your request?",
+    stopped: "No problem, I've stopped the {what}. Is there anything else I can help with?",
+    notBooked: "No problem, I haven't booked anything. Is there anything else I can help with?",
+    editWhich: "Of course — what would you like to change?",
+    thanksMidFlow: "You're very welcome! 😊",
+    helloMidFlow: "Hello! 😊",
+    yesIdle: "Great! How can I help you today?",
+    noIdle: "No problem! Feel free to ask if you need anything. 😊",
+    multiIntro: "Of course! Let's book them one at a time — first, your {noun}. ",
+    multiNext: "Now let's book the {noun} for {who}.",
+    multiAskName: "May I have {who}'s <b>full name</b>?",
+    myBookings: "Here's what you've booked:",
+    myBookingsNote: "Our team will call you to confirm.",
+    noBooking: "I don't see a booking in this chat yet. Would you like to make one?",
 
-    hours: {
-      openDays: [1, 2, 3, 4, 5, 6],                // 0 = Sunday … 6 = Saturday
-      open: "10:00",                               // 24h format
-      close: "20:00",
-      lastSlot: "19:45",                           // latest appointment start time
-      display: "Monday to Saturday, 10:00 AM – 8:00 PM",
-      shortDisplay: "Monday to Saturday, 10 AM – 8 PM",
-      closedDisplay: "We're closed on Sundays."
-    },
+    introBook: "Wonderful, let's get you booked in! 😊 ",
+    introResched: "Of course, I can help with that. ",
+    askName: "Wonderful, let's get you booked in! 😊 May I have your <b>full name</b>?",
+    askNameResched: "Of course, I can help with that. May I have the <b>full name</b> the {noun} is under?",
+    askNameShort: "May I have your <b>full name</b>?",
+    askPhone: "Thank you, {first}! What's the best <b>phone number</b> to reach you on?",
+    askPhoneResched: "Thank you, {first}. And which <b>phone number</b> was the {noun} booked with?",
+    askPhoneShort: "What's the best <b>phone number</b> to reach you on?",
+    askDate: "Which <b>date</b> suits you best? We're open {openDaysText} — you can type something like “tomorrow”, “next Monday” or “Oct 12”.",
+    askDateStaff: "Which <b>date</b> suits you best? {short} is available {days}.",
+    askDateShort: "Which <b>date</b> suits you best?",
+    askDateResched: "What <b>new date</b> would suit you? If you'd simply like to cancel, just tap “Just cancel”.",
+    askDateReschedShort: "What <b>new date</b> would suit you?",
+    askTime: "Lovely. What <b>time</b> works best for you on {date}? We're open from {open} to {close}.",
+    askTimeShort: "What <b>time</b> works best for you{onDate}?",
+    askTimePart: "What <b>time</b> in the {part} works best for you?",
+    askTimeStaff: "What <b>time</b> works best for you? {short} is available {range} on {dateShort}.",
+    askTimeOption: "What <b>time</b> works best for you? {option} starts at {times}.",
+    confirmQ: "Shall I confirm this {noun}?",
+    summaryTitle: "{Noun} summary",
+    anyStaff: "Any {staffSingular}",
+    anyAvailable: "Any available",
+    justCancel: "Just cancel",
+    sentNew: "✅ Your {noun} request has been sent. Our team will call you to confirm.",
+    sentCancel: "✅ Your cancellation request has been sent. Our team will call you shortly to confirm.",
+    sentResched: "✅ Your request to move your {noun} to <b>{date}</b> at <b>{time}</b> has been sent. Our team will call you shortly to confirm.",
+    anythingElse: "Is there anything else I can help you with?",
+    updated: "No problem — I've updated {changes}.",
+    thanksName: "Thank you, {first}! ",
+    great: "Great! ",
+    noted: "I've noted {items}. ",
+    earliest: "The earliest available slot is <b>{date}</b>{at}{with}. ",
+    sure: "Sure! ",
+    havingTrouble: "Having trouble? You can also call us at {phone}.",
+    pricesIntro: "Here's an overview of our main prices:",
+    pricesNote: "",
+    servicesText: "We offer {list}. Which one would you like to know more about?",
+    together: " Together, that's <b>{total}</b>.",
+    qtyLine: "{qty} {item} would be <b>{total}</b> ({each}).",
+    recommendedTag: "Recommended",
+    staffNotIn: "{staff} ({specialty}) isn't in that day — {short}'s next available day is <b>{next}</b>.",
+    online: "Online",
+    footer: "Demo assistant · runs entirely in your browser",
+    placeholder: "Type your message…",
+    todayLabel: "Today",
+    switchIndustry: "Switch industry",
 
-    // Used by the chatbot ({price:key}), the "Prices" list and price totals.
-    prices: {
-      consultation: { label: "Consultation / checkup",   value: "$50" },
-      cleaning:     { label: "Teeth cleaning",           value: "$80" },
-      filling:      { label: "Filling",                  value: "$120" },
-      whitening:    { label: "Teeth whitening",          value: "$250 per session" },
-      rootCanal:    { label: "Root canal",               value: "$300–$800" },
-      wisdom:       { label: "Wisdom tooth removal",     value: "$200–$400" },
-      implant:      { label: "Dental implant (from)",    value: "$1,200" },
-      braces:       { label: "Braces & aligners",        value: "After consultation" }
-    },
+    availableOn: "On <b>{date}</b>, these {staffPlural} are available:",
+    noStaff: "Sorry, no {staffPlural} are available on <b>{date}</b>. Which other day works for you?",
+    staffYes: "Yes! {staff} is available on <b>{date}</b>, from {range}. Would you like to book?",
+    staffNo: "{staff} isn't available on {weekday}. {short}'s next available day is <b>{next}</b> ({range}).",
+    staffGeneral: "{staff} ({specialty}) is available {days}, {range}. The next opening is <b>{next}</b>.",
+    staffUnavailable: "{staff} isn't available on {weekday}. {short}'s next available day is <b>{next}</b> ({range}) — or, on <b>{date}</b>, these {staffPlural} are available:",
+    staffUnavailableOnly: "{staff} isn't available on {weekday}. {short}'s next available day is <b>{next}</b> ({range}).",
+    specialist: "For {service}, you'll see <b>{staff}</b>, our {specialty}. {short} is available {days}, {range} — the next opening is <b>{next}</b>. Would you like to book?",
+    recommend: "For this visit, I'd recommend <b>{staff}</b>, our {specialty} — good news, {short} is available on {weekday} ({range}).",
+    recommendOther: "For this visit, I'd recommend <b>{staff}</b>, our {specialty}, who is available {days}.",
+    staffInvalid: "Please choose one of the {staffPlural} above, or tap “{anyStaff}” and I'll pick the best match.",
+    timeStaff: "{staff} works {range} on {weekday}. Please choose a time in that range.",
+    staffTimeClash: "{staff} is available on {date}, but works {range}, so {time} won't work. Please choose a time within those hours.",
+    staffFees: "",
+    compareStaff: "All our {staffPlural} are highly experienced in their specialties: {staffShortList}. You're in great hands with any of them!",
+    optionDay: "{option} runs on {days}. The next one is <b>{next}</b>.",
+    optionTime: "{option} starts at {times}. Please pick one of those times.",
+    openOn: "Yes, we're open on <b>{date}</b> from {openShort} to {closeShort}. Would you like to book?",
+    closedOn: "Sorry, we're closed on {weekday}. We're open {hoursShort}.",
 
-    /* DOCTORS — days: 0 = Sunday … 6 = Saturday, hours in 24h format.
-       "treats" links a doctor to knowledge-base topics, so the bot can
-       recommend the right specialist (e.g. braces → the orthodontist).
-       All doctors share the same consultation fee (prices.consultation). */
-    doctors: [
-      { id: "sarah", name: "Dr. Sarah Khan",   specialty: "General Dentist",       days: [1, 3, 5],    from: "10:00", to: "18:00",
-        treats: ["consultation", "cleaning", "fillings", "pain"] },
-      { id: "ali",   name: "Dr. Ali Ahmed",    specialty: "Root Canal Specialist", days: [2, 4, 6],    from: "12:00", to: "20:00",
-        treats: ["rootCanal"] },
-      { id: "emily", name: "Dr. Emily Carter", specialty: "Orthodontist",          days: [1, 2, 4],    from: "10:00", to: "16:00",
-        treats: ["braces"] },
-      { id: "james", name: "Dr. James Wilson", specialty: "Oral Surgeon",          days: [3, 6],       from: "14:00", to: "20:00",
-        treats: ["implants", "wisdom"] },
-      { id: "maria", name: "Dr. Maria Lopez",  specialty: "Children's Dentist",    days: [1, 3, 5, 6], from: "10:00", to: "15:00",
-        treats: ["children"] }
-    ],
-
-    // Service names used when a patient asks "what services do you offer?"
-    services: ["Checkups & consultations", "Teeth cleaning", "Fillings", "Root canal treatment", "Teeth whitening",
-               "Braces & aligners", "Dental implants", "Wisdom tooth removal", "Children's dentistry", "Emergency care"],
-
-    booking: {
-      maxDaysAhead: 90,
-      timeSlots: ["10:00 AM", "11:30 AM", "1:00 PM", "3:00 PM", "5:00 PM", "6:30 PM"],
-      reasons: ["Checkup", "Teeth cleaning", "Filling", "Tooth pain", "Braces / aligners", "Root canal", "Wisdom tooth / implant", "Child's checkup", "Other"]
-    },
-
-    bot: {
-      name: "Bright Smile Assistant",
-      welcome: "Hi there! 👋 Welcome to Bright Smile Dental Clinic. How can I help you today? Feel free to ask about our services, prices or opening hours — or I can book an appointment for you.",
-      quickReplies: ["Book Appointment", "Prices", "Timings", "Location"],
-      tooltip: "Need help? Chat with us!",
-      showTooltipAfterMs: 2500,                    // set to 0 to disable the automatic tooltip
-      outOfScope: "Sorry, I can't help with that. Feel free to ask me anything about our dental clinic! 😊",
-      fallback: "That's a great question for our team. Please give us a call at {phone} and we'll be happy to help.",
-
-      // Detection word lists (typos & plurals are handled automatically)
-      topicWords: ["tooth", "teeth", "dental", "dentist", "gum", "gums", "mouth", "jaw", "filling", "crown", "cavity", "cavities", "extraction", "wisdom", "denture", "veneer", "breath", "bite", "enamel", "smile", "clinic", "treatment", "x-ray", "xray", "appointment", "visit"],
-      offTopicWords: ["weather", "politics", "political", "election", "president", "government", "recipe", "recipes", "cook", "cooking", "pizza", "burger", "food", "football", "soccer", "cricket", "movie", "movies", "song", "music", "code", "coding", "python", "javascript", "program", "programming", "bitcoin", "crypto", "stock", "stocks", "news", "joke", "poem", "game", "restaurant", "hotel", "flight", "homework", "math", "buy"],
-      urgentWords: ["bleeding", "bleed", "broken", "broke", "knocked out", "knocked", "cracked", "swelling", "swollen", "abscess", "accident", "fever", "unbearable", "excruciating", "severe pain", "severe toothache", "severe ache", "cant sleep", "a lot of pain"],
-      fearWords: ["scared", "afraid", "nervous", "anxious", "anxiety", "fear", "terrified", "frightened", "worried", "phobia", "panic"],
-      compareWords: ["better", "best", "compare", "comparison", "vs", "versus", "which one", "who should", "recommend", "prefer", "more experienced", "good"],
-
-      // Reply texts used by the conversation logic ({tokens} are filled in automatically)
-      replies: {
-        rephrase: "Sorry, I didn't quite catch that. Could you rephrase?",
-        continueBooking: "Would you like to continue with your booking?",
-        continueRequest: "Would you like to continue with your request?",
-        stopped: "No problem, I've stopped the {what}. Is there anything else I can help with?",
-        notBooked: "No problem, I haven't booked anything. Is there anything else I can help with?",
-        editWhich: "Of course — what would you like to change?",
-        thanksMidFlow: "You're very welcome! 😊",
-        yesIdle: "Great! How can I help you today?",
-        noIdle: "No problem! Feel free to ask if you need anything. 😊",
-        multiIntro: "Of course! Let's book them one at a time — first, your appointment. ",
-        multiNext: "Now let's book the appointment for {who}.",
-        myBookings: "Here's what you've booked:",
-        myBookingsNote: "Our team will call you to confirm.",
-        noBooking: "I don't see a booking in this chat yet. Would you like to make one?",
-
-        urgent: "I'm so sorry — that sounds really painful 😟. Please call our emergency line right away at {emergency} so our team can help you straight away.",
-        urgentNoMedicine: "I'm not able to recommend any medication, but our dentist can advise you safely.",
-        urgentOffer: "I can also book the earliest available appointment for you.",
-        fearNumb: "It's completely normal to feel nervous — you're not alone! Modern {treatment} is done with local anesthesia, so it's usually very comfortable, and our dentists will explain every step and go at your pace. 😊",
-        fearGentle: "It's completely normal to feel nervous — you're not alone! Modern {treatment} is gentle and usually very comfortable, and our dentists will explain every step and go at your pace. 😊",
-        fearGeneral: "It's completely normal to feel nervous — you're not alone! Our dentists are gentle and patient, they'll explain every step, and local anesthesia is used whenever it's needed so you stay comfortable. 😊",
-        compareDoctors: "All our dentists are highly experienced in their specialties: {doctorsShort}. You're in great hands with any of them!",
-        doctorFees: "All our doctors charge the same consultation fee — {price:consultation} — so you can simply choose whoever suits your needs and schedule.",
-        durationOther: "Treatment time depends on your case, so your dentist will confirm it at your checkup. For reference, a routine checkup takes about 30 minutes.",
-        openOn: "Yes, we're open on <b>{date}</b> from {openShort} to {closeShort}. Would you like to book an appointment?",
-        closedOn: "Sorry, we're closed on Sundays. We're open {hoursShort}.",
-
-        availableOn: "On <b>{date}</b>, these doctors are available:",
-        noDoctors: "Sorry, no doctors are available on <b>{date}</b>. Which other day works for you?",
-        doctorYes: "Yes! {doctor} is available on <b>{date}</b>, from {range}. Would you like to book?",
-        doctorNo: "{doctor} isn't available on {weekday}. {short}'s next available day is <b>{next}</b> ({range}).",
-        doctorGeneral: "{doctor} ({specialty}) is available {days}, {range}. The next opening is <b>{next}</b>.",
-        doctorUnavailable: "{doctor} isn't available on {weekday}. {short}'s next available day is <b>{next}</b> ({range}) — or, on <b>{date}</b>, these doctors are available:",
-        specialist: "For {service}, you'll see <b>{doctor}</b>, our {specialty}. {short} is available {days}, {range} — the next opening is <b>{next}</b>. Would you like to book?",
-        recommend: "For this visit, I'd recommend <b>{doctor}</b>, our {specialty} — good news, {short} is available on {weekday} ({range}).",
-        recommendOther: "For this visit, I'd recommend <b>{doctor}</b>, our {specialty}, who is available {days}.",
-        doctorInvalid: "Please choose one of the doctors above, or tap “Any doctor” and I'll pick the best match.",
-        timeDoctor: "{doctor} works {range} on {weekday}. Please choose a time in that range.",
-        doctorTimeClash: "{doctor} is available on {date}, but works {range}, so {time} won't work. Please choose a time within those hours.",
-
-        nameInvalid: "Could you please share your <b>full name</b> (letters only)? You can also type “cancel” to stop.",
-        phoneInvalid: "Hmm, that doesn't look like a valid phone number. Could you enter it with digits, like <b>+1 555 123 4567</b>?",
-        reasonInvalid: "Could you tell me briefly what the visit is for?",
-        confirmInvalid: "Just reply <b>Yes</b> to confirm, or <b>Edit</b> if anything needs changing.",
-        dateImpossible: "That date doesn't exist. Could you pick another one?",
-        datePast: "That date has already passed. Please choose an upcoming date.",
-        dateSunday: "Sorry, we're closed on Sundays. We're open {hoursShort}. Which other day works for you?",
-        dateClosed: "Sorry, we're closed on that day. We're open {hoursShort}. Which other day works for you?",
-        dateFar: "We take bookings up to 3 months ahead. Could you choose an earlier date?",
-        dateTodayLate: "We're fully booked for the rest of today. Which other day works for you?",
-        dateUnclear: "Sorry, I didn't quite catch that date. Could you try something like “tomorrow”, “next Monday” or “Oct 12”?",
-        timeRange: "Our hours are {openShort} to {closeShort}. Please choose a time in that range.",
-        timeLate: "Our last appointment starts at {lastShort}. Please choose a time between {openShort} and {lastShort}.",
-        timePast: "That time has already passed today. Could you choose a later time?",
-        timeUnclear: "Sorry, I didn't quite catch the time. Could you enter something like <b>11:00 AM</b> or <b>5:30 PM</b>?",
-        timeAlso: "Also, {time} is outside our hours ({openShort} – {closeShort}), so we'll choose a time next."
-      }
-    },
-
-    /* ---------------------------------------------------------------
-       KNOWLEDGE BASE / INTENTS
-       strong = 3 points, weak = 1 point. Typos & plurals are handled
-       automatically. Order matters only to break ties (earlier wins).
-       Answer tokens: {phone} {whatsapp} {email} {emergency} {address}
-       {mapsLink} {hours} {closed} {open} {close} {doctors}
-       {price:key} {specialist:topic}
-       --------------------------------------------------------------- */
-    faq: [
-      { id: "reschedule", action: "reschedule",
-        strong: ["reschedule", "cancel", "cancellation", "postpone", "change appointment", "move appointment", "change booking", "different date", "another date", "another time"],
-        weak: [] },
-
-      { id: "book", action: "book",
-        strong: ["book", "booking", "reserve", "make appointment", "get appointment", "schedule"],
-        weak: ["appointment", "slot", "visit", "available", "availability", "come in"] },
-
-      { id: "safety",
-        strong: ["pregnant", "pregnancy", "breastfeeding", "x ray", "xray", "radiation", "allergic", "allergy", "diabetes", "diabetic", "heart condition", "blood thinner", "side effect"],
-        weak: ["safe", "risk"],
-        answer: "That's a really important question — your dentist is the best person to advise you, based on your situation. Please call us at {phone} before your visit, and our team will make sure you're well looked after.",
-        chips: ["Book Appointment"] },
-
-      { id: "medical",
-        strong: ["medicine", "medication", "painkiller", "antibiotic", "antibiotics", "ibuprofen", "paracetamol", "tylenol", "advil", "prescribe", "prescription", "pill", "tablet", "diagnose", "diagnosis"],
-        weak: [],
-        answer: "I'm sorry you're dealing with this. I'm not able to recommend medication — only a dentist can advise on that safely. If it's urgent, please call our emergency line at {emergency}, or I can book the earliest available appointment for you.",
-        chips: ["Book earliest appointment", "Location"] },
-
-      { id: "pain",
-        strong: ["pain", "painful", "toothache", "ache", "hurt", "hurting", "sore", "sensitive"],
-        weak: ["bad", "terrible"],
-        answer: "I'm so sorry you're in pain 😟. If it's severe, please call our emergency line at {emergency} right away. I can also book the earliest available appointment for you.",
-        chips: ["Book earliest appointment", "Location"] },
-
-      { id: "emergency",
-        strong: ["emergency", "urgent", "urgently"],
-        weak: ["immediately"],
-        answer: "Yes, of course — we see dental emergencies. Please call our emergency line at {emergency} and our team will take care of you right away.",
-        chips: ["Book earliest appointment", "Location"] },
-
-      { id: "late",
-        strong: ["late", "running late", "delayed", "delay", "arrive late", "miss my appointment"],
-        weak: [],
-        answer: "No worries — if you're running late, please give us a call at {phone} and our team will let you know the best option.",
-        chips: ["Location", "Parking"] },
-
-      { id: "language",
-        strong: ["spanish", "espanol", "french", "arabic", "urdu", "hindi", "german", "chinese", "mandarin", "portuguese", "italian", "russian", "language", "other language"],
-        weak: ["speak"],
-        answer: "Sorry, I can only chat in English right now, but our team can help you at {phone}." },
-
-      { id: "duration",
-        strong: ["how long", "duration", "how much time", "how many minutes"],
-        weak: ["take", "last", "long", "minute"],
-        answer: "A routine checkup takes about 30 minutes.",
-        chips: ["Book Appointment", "Prices"] },
-
-      { id: "consultation",
-        strong: ["consultation", "consult", "checkup", "check up", "examination", "exam", "first visit"],
-        weak: ["fee"],
-        answer: "A consultation and checkup is {price:consultation}. Would you like me to book one for you?",
-        chips: ["Book Appointment", "Prices", "Insurance"] },
-
-      { id: "cleaning",
-        strong: ["cleaning", "clean", "scaling", "polishing", "polish", "hygiene", "plaque", "tartar", "deep clean"],
-        weak: [],
-        answer: "A professional teeth cleaning is {price:cleaning}. Would you like to book one?",
-        chips: ["Book Appointment", "Whitening", "Prices"] },
-
-      { id: "fillings",
-        strong: ["filling", "fillings", "cavity", "cavities", "cavity filling"],
-        weak: [],
-        answer: "Yes, we do fillings — they're {price:filling} each, done by {specialist:fillings}.",
-        chips: ["Book Appointment", "Prices"] },
-
-      { id: "rootCanal",
-        strong: ["root canal", "rct", "endodontic", "nerve treatment"],
-        weak: ["canal", "root", "nerve"],
-        answer: "A root canal usually costs {price:rootCanal}, depending on the tooth, and it's done by {specialist:rootCanal}. We'll confirm the exact cost after a checkup.",
-        chips: ["Book Appointment", "Payment options"] },
-
-      { id: "wisdom",
-        strong: ["wisdom tooth", "wisdom teeth", "wisdom", "extraction", "extract", "tooth removal", "teeth removal", "pull tooth", "pulled"],
-        weak: ["removal", "remove"],
-        answer: "Yes, we do! Wisdom tooth removal is {price:wisdom}, and it's performed by {specialist:wisdom}.",
-        chips: ["Book Appointment", "Payment options"] },
-
-      { id: "whitening",
-        strong: ["whitening", "whiten", "bleach", "bleaching", "white teeth", "yellow teeth", "stain", "stained"],
-        weak: ["white", "bright", "brighter", "yellow"],
-        answer: "Yes, we do! Professional teeth whitening is {price:whitening}.",
-        chips: ["Book Appointment", "Prices"] },
-
-      { id: "braces",
-        strong: ["braces", "brace", "aligner", "invisalign", "orthodontic", "orthodontics", "orthodontist", "straighten", "crooked", "retainer"],
-        weak: ["straight"],
-        answer: "Yes, we offer metal braces, ceramic braces and clear aligners with {specialist:braces}. Since every smile is different, we'll give you an exact price after a consultation.",
-        chips: ["Book Appointment", "Payment options"] },
-
-      { id: "implants",
-        strong: ["implant", "missing tooth", "missing teeth", "replace tooth", "tooth replacement", "lost tooth"],
-        weak: ["missing", "replace", "replacement"],
-        answer: "Yes, we offer dental implants, starting from {price:implant} per implant, with {specialist:implants}.",
-        chips: ["Book Appointment", "Payment options"] },
-
-      { id: "children",
-        strong: ["child", "children", "kid", "kids", "pediatric", "paediatric", "toddler", "son", "daughter", "baby", "year old", "years old", "yr old"],
-        weak: ["age", "young", "family"],
-        answer: "Absolutely! We happily treat children aged 3 and above with {specialist:children}.",
-        chips: ["Book Appointment", "Doctors"] },
-
-      { id: "insurance",
-        strong: ["insurance", "insured", "insurer", "coverage"],
-        weak: ["cover", "covered", "claim", "policy"],
-        answer: "Yes, we accept most major dental insurance plans. Just remember to bring your insurance card to your visit.",
-        chips: ["Payment options", "Book Appointment"] },
-
-      { id: "payment",
-        strong: ["payment", "pay", "cash", "card", "credit", "debit", "installment", "instalment", "emi", "financing", "finance", "visa", "mastercard"],
-        weak: ["method", "plan"],
-        answer: "We accept cash and credit/debit cards, and we also offer installment plans for larger treatments.",
-        chips: ["Insurance", "Prices"] },
-
-      { id: "discount",
-        strong: ["discount", "discounts", "offers", "special offer", "deal", "deals", "promo", "promotion", "coupon", "voucher", "sale"],
-        weak: ["cheaper"],
-        answer: "For current offers or discounts, please call us at {phone}.",
-        chips: ["Prices", "Book Appointment"] },
-
-      { id: "doctors",                              // doctor names from CONFIG.doctors are added automatically
-        strong: ["doctor", "dentist", "dr", "specialist", "surgeon", "who are"],
-        weak: ["experience", "experienced", "qualified", "team", "staff"],
-        answer: "Our team: {doctors}. You'll be in very good hands!",
-        chips: ["Book Appointment", "Services"] },
-
-      { id: "weekends",
-        strong: ["weekend", "saturday", "sunday"],
-        weak: [],
-        answer: "We're open on Saturdays from {open} to {close}, and closed on Sundays.",
-        chips: ["Book Appointment", "Location"] },
-
-      { id: "timings",
-        strong: ["timing", "hours", "opening hours", "working hours", "business hours", "what time"],
-        weak: ["open", "close", "closing", "time", "when"],
-        answer: "We're open {hours}. {closed}",
-        chips: ["Book Appointment", "Location"] },
-
-      { id: "parking",
-        strong: ["parking", "park", "car park", "garage"],
-        weak: ["car", "drive", "driving", "vehicle"],
-        answer: "Yes — there's free parking right in front of the clinic.",
-        chips: ["Location", "Timings"] },
-
-      { id: "location",
-        strong: ["location", "located", "address", "direction", "map", "google maps", "where are you", "how to reach", "how do i get", "find you"],
-        weak: ["where", "near", "area", "city", "street"],
-        answer: "You'll find us at <b>{address}</b>.<br>{mapsLink}",
-        chips: ["Timings", "Parking", "Book Appointment"] },
-
-      { id: "email",
-        strong: ["email", "e mail", "mail", "email address"],
-        weak: [],
-        answer: "You can email us at {email}.",
-        chips: ["Book Appointment"] },
-
-      { id: "human",
-        strong: ["real person", "human", "receptionist", "talk to someone", "speak to someone", "talk to person", "agent", "whatsapp", "phone number", "contact number", "call you", "representative"],
-        weak: ["talk", "call", "contact", "phone", "number"],
-        answer: "You can call our team at {phone}, or message us on WhatsApp at {whatsapp}.",
-        chips: ["Timings", "Book Appointment"] },
-
-      { id: "prices", action: "prices",
-        strong: ["price list", "prices", "rates", "charges"],
-        weak: ["price", "cost", "how much", "charge", "rate", "expensive", "cheap", "afford"] },
-
-      { id: "services", action: "services",
-        strong: ["services", "treatments", "what do you offer", "what do you do"],
-        weak: ["offer", "treatment", "provide"] },
-
-      { id: "greeting",
-        strong: ["hi", "hello", "hey", "hiya", "good morning", "good afternoon", "good evening", "salam", "assalam"],
-        weak: [],
-        answer: "Hello! 😊 How can I help you today?" },
-
-      { id: "thanks",
-        strong: ["thank", "thanks", "thx", "appreciate", "great", "perfect", "awesome"],
-        weak: [],
-        answer: "You're very welcome! Take care, and we look forward to seeing you soon. 😊" },
-
-      { id: "bye",
-        strong: ["bye", "goodbye", "see you", "good night"],
-        weak: [],
-        answer: "Thank you for chatting with us — take care and have a lovely day! 😊" }
-    ]
+    nameInvalid: "Could you please share your <b>full name</b> (letters only)? You can also type “cancel” to stop.",
+    phoneInvalid: "Hmm, that doesn't look like a valid phone number. Could you enter it with digits, like <b>+1 555 123 4567</b>?",
+    confirmInvalid: "Just reply <b>Yes</b> to confirm, or <b>Edit</b> if anything needs changing.",
+    dateImpossible: "That date doesn't exist. Could you pick another one?",
+    datePast: "That date has already passed. Please choose an upcoming date.",
+    dateClosed: "Sorry, we're closed on {weekday}. We're open {hoursShort}. Which other day works for you?",
+    dateFar: "We take bookings up to 3 months ahead. Could you choose an earlier date?",
+    dateTodayLate: "We're fully booked for the rest of today. Which other day works for you?",
+    dateUnclear: "Sorry, I didn't quite catch that date. Could you try something like “tomorrow”, “next Monday” or “Oct 12”?",
+    timeRange: "Our hours are {openShort} to {closeShort}. Please choose a time in that range.",
+    timeLate: "Our last {noun} starts at {lastShort}. Please choose a time between {openShort} and {lastShort}.",
+    timePast: "That time has already passed today. Could you choose a later time?",
+    timeUnclear: "Sorry, I didn't quite catch the time. Could you enter something like <b>11:00 AM</b> or <b>5:30 PM</b>?",
+    timeAlso: "Also, {time} is outside our hours ({openShort} – {closeShort}), so we'll choose a time next."
   };
 
+  // Rotating short messages for the 2nd+ wrong attempt in a row (never the same line twice in a row)
+  const DEFAULT_SHORT_ERRORS = {
+    name: ["Please enter a valid name.", "Hmm, that still doesn't look right. Please enter your full name (letters only).", "Please type your name using letters only."],
+    phone: ["Please enter a valid phone number.", "Hmm, that still doesn't look right. Please enter a valid phone number.", "Please enter a valid phone number (digits only)."],
+    date: ["Please enter a valid date ({openDaysText}).", "Hmm, that still doesn't look right. Please enter a valid date.", "Please tap one of the dates below, or type one like “Oct 12”."],
+    time: ["Please enter a valid time.", "Hmm, that still doesn't look right. Please enter a time between {openShort} and {lastShort}.", "Please tap one of the times below, or type one like “3:30 PM”."],
+    staff: ["Please choose one of the available {staffPlural}.", "Please tap one of the {staffPlural} above, or “{anyStaff}”."],
+    confirm: ["Please reply Yes or Edit.", "Hmm, I didn't catch that. Tap “Yes, confirm” to book, or “Edit details” to make changes."],
+    field: ["Please choose one of the options below.", "Please tap one of the options below, or type a short answer."]
+  };
+
+  /* Words that clearly belong to OTHER industries. A bot treats these as
+     off-topic unless its own config uses them (e.g. "menu" for a restaurant). */
+  const INDUSTRY_WORDS = [
+    "tooth", "teeth", "dentist", "dental", "braces", "filling", "fillings", "cavity", "root canal", "gum", "gums", "orthodontist",
+    "menu", "dish", "dishes", "biryani", "curry", "naan", "pizza", "burger", "pasta", "sushi", "dessert", "restaurant", "dine", "dinner", "lunch", "breakfast", "takeaway", "chef", "wine", "cocktail",
+    "property", "properties", "apartment", "house", "villa", "condo", "rent", "rental", "lease", "mortgage", "realtor", "listing", "listings", "bedroom", "bedrooms", "landlord", "tenant", "plot",
+    "haircut", "hairstyle", "hair", "stylist", "salon", "facial", "manicure", "pedicure", "nails", "makeup", "bridal", "waxing", "blowdry", "eyebrows", "lashes",
+    "gym", "workout", "fitness", "membership", "trainer", "yoga", "zumba", "crossfit", "weights", "cardio", "treadmill", "protein", "muscle", "exercise", "bodybuilding"
+  ];
+
   /* =====================================================================
-     STYLES (scoped inside the Shadow DOM)
+     STYLES (scoped inside the Shadow DOM) — accent colours come from the config theme
      ===================================================================== */
-  const CSS = `
+  const CSS_TEMPLATE = (t) => `
   :host{all:initial}
   .bs-root{
-    --amber:#FFB800; --red:#FF4D2E; --mint:#3CCFB4;
-    --grad:linear-gradient(135deg,#FFB800 0%,#FF4D2E 100%);
+    --amber:${t.a1}; --red:${t.a2}; --mint:#3CCFB4;
+    --grad:linear-gradient(135deg,${t.a1} 0%,${t.a2} 100%);
     --bg:#0D0D0F; --bubble:#1E1E24; --field:#1A1A1F; --bar:#121216;
     --text:#F5F0E8; --muted:#A39D94; --line:rgba(255,255,255,.08);
-    --amber-line:rgba(255,184,0,.32); --amber-soft:rgba(255,184,0,.12);
+    --amber-line:rgba(${t.a1rgb},.32); --amber-soft:rgba(${t.a1rgb},.12);
     --bubble-shadow:0 4px 14px -6px rgba(0,0,0,.6);
-    --win-shadow:0 30px 70px -18px rgba(0,0,0,.8),0 0 0 1px rgba(255,184,0,.12),0 0 40px -10px rgba(255,120,0,.18);
+    --win-shadow:0 30px 70px -18px rgba(0,0,0,.8),0 0 0 1px rgba(${t.a1rgb},.12),0 0 40px -10px rgba(${t.g2rgb},.18);
     color-scheme:dark;
     font-family:Outfit,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     font-weight:300;color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased;font-size:16px;text-align:left;
@@ -379,11 +174,11 @@
     background:var(--grad);display:grid;place-items:center;transition:transform .25s,opacity .25s;
     animation:bsPulse 2.8s ease-out infinite}
   .chat-launcher:hover{transform:scale(1.06)}
-  .open .chat-launcher{animation:none;box-shadow:0 10px 26px -8px rgba(255,77,46,.6),0 0 22px rgba(255,160,0,.35)}
+  .open .chat-launcher{animation:none;box-shadow:0 10px 26px -8px rgba(${t.a2rgb},.6),0 0 22px rgba(${t.g1rgb},.35)}
   @keyframes bsPulse{
-    0%{box-shadow:0 10px 26px -8px rgba(255,77,46,.6),0 0 22px rgba(255,160,0,.4),0 0 0 0 rgba(255,184,0,.5)}
-    70%{box-shadow:0 10px 26px -8px rgba(255,77,46,.6),0 0 22px rgba(255,160,0,.4),0 0 0 16px rgba(255,184,0,0)}
-    100%{box-shadow:0 10px 26px -8px rgba(255,77,46,.6),0 0 22px rgba(255,160,0,.4),0 0 0 0 rgba(255,184,0,0)}
+    0%{box-shadow:0 10px 26px -8px rgba(${t.a2rgb},.6),0 0 22px rgba(${t.g1rgb},.4),0 0 0 0 rgba(${t.a1rgb},.5)}
+    70%{box-shadow:0 10px 26px -8px rgba(${t.a2rgb},.6),0 0 22px rgba(${t.g1rgb},.4),0 0 0 16px rgba(${t.a1rgb},0)}
+    100%{box-shadow:0 10px 26px -8px rgba(${t.a2rgb},.6),0 0 22px rgba(${t.g1rgb},.4),0 0 0 0 rgba(${t.a1rgb},0)}
   }
   .chat-launcher .ico{position:absolute;display:grid;place-items:center;transition:transform .3s,opacity .3s}
   .chat-launcher .i-close{opacity:0;transform:rotate(-90deg) scale(.6)}
@@ -402,9 +197,9 @@
   /* ---------- Window (black with soft amber/crimson glows + dotted grid) ---------- */
   .chat-window{position:fixed;right:24px;bottom:100px;z-index:2147483000;width:384px;height:min(640px,calc(100vh - 128px));border-radius:26px;box-shadow:var(--win-shadow);
     background:
-      radial-gradient(260px 220px at 8% 22%,rgba(255,184,0,.10),transparent 70%),
-      radial-gradient(280px 240px at 96% 62%,rgba(220,20,60,.10),transparent 70%),
-      radial-gradient(200px 180px at 30% 95%,rgba(255,120,0,.06),transparent 70%),
+      radial-gradient(260px 220px at 8% 22%,rgba(${t.a1rgb},.10),transparent 70%),
+      radial-gradient(280px 240px at 96% 62%,rgba(${t.blobrgb},.10),transparent 70%),
+      radial-gradient(200px 180px at 30% 95%,rgba(${t.g2rgb},.06),transparent 70%),
       radial-gradient(rgba(255,255,255,.055) 1px,transparent 1.3px) 0 0/18px 18px,
       var(--bg);
     display:flex;flex-direction:column;overflow:hidden;
@@ -416,7 +211,7 @@
   .chat-head{position:absolute;top:0;left:0;right:0;z-index:2;color:var(--text);padding:14px 14px 14px 16px;display:flex;align-items:center;gap:12px;
     background:rgba(13,13,15,.68);
     backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%);
-    border-bottom:1px solid var(--amber);box-shadow:0 8px 24px -14px rgba(255,184,0,.35)}
+    border-bottom:1px solid var(--amber);box-shadow:0 8px 24px -14px rgba(${t.a1rgb},.35)}
   .bot-avatar{width:42px;height:42px;border-radius:50%;background:var(--amber-soft);border:1px solid var(--amber-line);color:var(--amber);display:grid;place-items:center;flex-shrink:0}
   .chat-head .who{flex:1;min-width:0;line-height:1.3}
   .chat-head .who .name{display:block;font-size:16px;font-weight:500;letter-spacing:.1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -438,12 +233,12 @@
   .msg.user .col{align-items:flex-end}
   .bubble{padding:10px 14px;font-size:14.5px;line-height:1.5;font-weight:300;overflow-wrap:anywhere}
   .msg.bot .bubble{background:var(--bubble);color:var(--text);border:1px solid var(--amber-line);border-radius:18px 18px 18px 4px;box-shadow:var(--bubble-shadow)}
-  .msg.user .bubble{background:var(--grad);color:#0D0D0F;font-weight:400;border-radius:18px 18px 4px 18px;box-shadow:0 6px 18px -8px rgba(255,77,46,.6)}
-  .bubble a{color:var(--amber);font-weight:500;text-decoration:underline;text-decoration-color:rgba(255,184,0,.4);text-underline-offset:2px}
+  .msg.user .bubble{background:var(--grad);color:#0D0D0F;font-weight:400;border-radius:18px 18px 4px 18px;box-shadow:0 6px 18px -8px rgba(${t.a2rgb},.6)}
+  .bubble a{color:var(--amber);font-weight:500;text-decoration:underline;text-decoration-color:rgba(${t.a1rgb},.4);text-underline-offset:2px}
   .msg.user .bubble a{color:#0D0D0F}
   .msg time{font-size:11px;color:var(--muted);margin-top:5px;padding:0 4px}
   .bubble a.map-btn{display:inline-flex;align-items:center;gap:6px;margin-top:8px;background:var(--amber-soft);border:1px solid var(--amber-line);padding:7px 12px;border-radius:12px;text-decoration:none;font-size:13.5px}
-  .bubble a.map-btn:hover{background:rgba(255,184,0,.2)}
+  .bubble a.map-btn:hover{background:rgba(${t.a1rgb},.2)}
 
   .typing .bubble{display:flex;gap:5px;align-items:center;padding:14px 16px}
   .typing .bubble span{width:7px;height:7px;border-radius:50%;background:var(--amber);animation:bsDot 1.2s infinite ease-in-out}
@@ -468,7 +263,7 @@
   .chips:empty{display:none}
   .chip{border:1px solid var(--amber);background:transparent;color:var(--amber);font-weight:500;font-size:13.5px;line-height:1;padding:9px 15px;border-radius:999px;cursor:pointer;
     transition:background .2s,border-color .2s,color .2s,transform .15s,box-shadow .2s;animation:bsIn .35s ease both}
-  .chip:hover{background:var(--amber);color:#0D0D0F;box-shadow:0 0 16px -4px rgba(255,184,0,.6)}
+  .chip:hover{background:var(--amber);color:#0D0D0F;box-shadow:0 0 16px -4px rgba(${t.a1rgb},.6)}
   .chip:active{transform:scale(.96)}
   .chip:focus-visible,.send-btn:focus-visible,.head-btn:focus-visible,.chat-launcher:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 
@@ -477,10 +272,10 @@
   .chat-input input{flex:1;min-width:0;border:1px solid var(--line);border-radius:999px;padding:12px 16px;font-size:15px;font-weight:300;color:var(--text);outline:none;caret-color:var(--amber);
     transition:border-color .2s,box-shadow .2s;background:var(--field);height:auto;width:auto;box-shadow:none}
   .chat-input input::placeholder{color:#8A857E}
-  .chat-input input:focus{border-color:var(--amber);box-shadow:0 0 0 4px rgba(255,184,0,.14)}
+  .chat-input input:focus{border-color:var(--amber);box-shadow:0 0 0 4px rgba(${t.a1rgb},.14)}
   .send-btn{width:46px;height:46px;border-radius:50%;border:0;background:var(--grad);color:#0D0D0F;cursor:pointer;display:grid;place-items:center;flex-shrink:0;
-    transition:transform .15s,box-shadow .2s,filter .2s;box-shadow:0 8px 18px -8px rgba(255,77,46,.8)}
-  .send-btn:hover{filter:brightness(1.08);box-shadow:0 0 18px rgba(255,160,0,.45)}
+    transition:transform .15s,box-shadow .2s,filter .2s;box-shadow:0 8px 18px -8px rgba(${t.a2rgb},.8)}
+  .send-btn:hover{filter:brightness(1.08);box-shadow:0 0 18px rgba(${t.g1rgb},.45)}
   .send-btn:active{transform:scale(.93)}
   .chat-foot{text-align:center;font-size:11px;color:var(--muted);padding:0 0 10px;background:rgba(18,18,22,.92)}
 
@@ -523,8 +318,13 @@
      ===================================================================== */
   const ICONS = {
     tooth: '<path d="M12 5.5C10.3 4.3 8.9 3.5 7.2 3.5 4.8 3.5 3 5.5 3 8c0 2.4 1 3.9 1.6 6 .6 2.3.8 4.6 1.6 6.3.5 1 1.8.9 2.1-.2l1.1-4.2c.6-1.4 4.6-1.4 5.2 0l1.1 4.2c.3 1.1 1.6 1.2 2.1.2.8-1.7 1-4 1.6-6.3.6-2.1 1.6-3.6 1.6-6 0-2.5-1.8-4.5-4.2-4.5-1.7 0-3.1.8-4.8 2z"/>',
+    dish: '<path d="M4 3v7a3 3 0 0 0 3 3v8M7 3v6M10 3v7a3 3 0 0 1-3 3"/><path d="M17 21V3c-2.2 0-4 2.5-4 6.5 0 2.3 1.2 3.5 4 3.5"/>',
+    home: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
+    scissors: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.1 8.1L20 20M8.1 15.9L20 4M13.5 12l1 0"/>',
+    dumbbell: '<path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/>',
+    grid: '<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/>',
     calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
-    chatFill: '<path fill="currentColor" stroke="none" d="M12 3a9 9 0 0 0-7.9 13.3L3 21l4.8-1.1A9 9 0 1 0 12 3z"/><circle cx="8" cy="12" r="1.2" fill="#FFB800" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="#FFB800" stroke="none"/><circle cx="16" cy="12" r="1.2" fill="#FFB800" stroke="none"/>',
+    chatFill: '<path fill="currentColor" stroke="none" d="M12 3a9 9 0 0 0-7.9 13.3L3 21l4.8-1.1A9 9 0 1 0 12 3z"/><circle cx="8" cy="12" r="1.2" fill="__A1__" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="__A1__" stroke="none"/><circle cx="16" cy="12" r="1.2" fill="__A1__" stroke="none"/>',
     close: '<path d="M6 6l12 12M18 6L6 18"/>',
     send: '<path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/>',
     refresh: '<path d="M3 12a9 9 0 0 1 15.5-6.3L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16"/><path d="M3 21v-5h5"/>'
@@ -532,18 +332,21 @@
   const icon = (name, size = 20) =>
     `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ""}</svg>`;
 
+  const hexRgb = (hex) => { const n = parseInt(hex.replace("#", ""), 16); return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`; };
+  function themeOf(t = {}) {
+    const a1 = t.accent || "#FFB800", a2 = t.accent2 || "#FF4D2E";
+    return { a1, a2, a1rgb: hexRgb(a1), a2rgb: hexRgb(a2), g1rgb: t.glow || "255,160,0", g2rgb: t.glow2 || "255,120,0", blobrgb: t.blob || "220,20,60", icon: t.icon || "tooth" };
+  }
+
   /* =====================================================================
-     HELPERS
+     SHARED TEXT HELPERS
      ===================================================================== */
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const telHref = (p) => "tel:" + p.replace(/[^\d+]/g, "");
-  const fullAddress = () => `${CONFIG.clinic.address}, ${CONFIG.clinic.city}`;
-  const mapsUrl = () => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(`${CONFIG.clinic.name}, ${fullAddress()}`);
   const hmToMin = (hm) => { const [h, m] = hm.split(":").map(Number); return h * 60 + m; };
   const minToLabel = (min) => { const h = Math.floor(min / 60), m = min % 60; const h12 = ((h + 11) % 12) + 1; return `${h12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`; };
   const minToShort = (min) => minToLabel(min).replace(":00", "");                 // "10 AM", "7:30 PM"
   const timeLabel = (min) => minToLabel(min) + (min === 720 ? " (noon)" : "");
-  const OPEN_MIN = hmToMin(CONFIG.hours.open), CLOSE_MIN = hmToMin(CONFIG.hours.close), LAST_MIN = hmToMin(CONFIG.hours.lastSlot);
   const today = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };          // the device's real current date
   const nowMin = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
   const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -555,58 +358,13 @@
   const toISO = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const fromISO = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
   const clockNow = () => new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-  const isOpenDay = (d) => CONFIG.hours.openDays.includes(d.getDay());
   const joinAnd = (list) => (list.length <= 1 ? list[0] || "" : list.slice(0, -1).join(", ") + " and " + list[list.length - 1]);
   const titleCase = (s) => s.toLowerCase().replace(/(^|[\s'-])([a-zà-ɏ])/g, (m, p, c) => p + c.toUpperCase());
   const firstName = (name) => name.split(" ")[0];
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
   const DAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const money = (n) => "$" + n.toLocaleString("en-US");
 
-  // Doctors with pre-computed working minutes ("lastMin" = latest appointment start)
-  const DOCTORS = CONFIG.doctors.map((d) => {
-    const parts = d.name.replace(/^dr\.?\s*/i, "").split(/\s+/);
-    const fromMin = hmToMin(d.from), toMin = hmToMin(d.to);
-    return { ...d, first: parts[0].toLowerCase(), last: parts[parts.length - 1].toLowerCase(), short: "Dr. " + parts[0],
-      fromMin, toMin, lastMin: Math.min(toMin - 15, LAST_MIN) };
-  });
-  const rangeText = (doc) => `${minToShort(doc.fromMin)} – ${minToShort(doc.toMin)}`;
-  const daysText = (doc) => joinAnd(doc.days.map((i) => DAY_SHORT[i]));
-  const worksOn = (doc, date) => doc.days.includes(date.getDay());
-  const doctorsText = () => joinAnd(DOCTORS.map((d) => `<b>${d.name}</b> (${d.specialty})`));
-  const doctorsShortText = () => joinAnd(DOCTORS.map((d) => `${d.name} (${d.specialty})`));
-  const specialistText = (topic) => { const d = DOCTORS.find((x) => x.treats.includes(topic)); return d ? `<b>${d.name}</b>, our ${d.specialty}` : "our dentists"; };
-
-  // Replaces {tokens} in config texts with live values / links.
-  function fill(text, extra = {}) {
-    const c = CONFIG.clinic;
-    const tokens = {
-      phone: `<a href="${telHref(c.phone)}">${c.phone}</a>`,
-      whatsapp: `<a href="https://wa.me/${c.whatsapp.replace(/\D/g, "")}" target="_blank" rel="noopener">${c.whatsapp}</a>`,
-      email: `<a href="mailto:${c.email}">${c.email}</a>`,
-      emergency: `<a href="${telHref(c.emergencyPhone)}">${c.emergencyPhone}</a>`,
-      address: esc(fullAddress()),
-      mapsLink: `<a class="map-btn" href="${mapsUrl()}" target="_blank" rel="noopener">📍 View on Google Maps</a>`,
-      hours: CONFIG.hours.display,
-      hoursShort: CONFIG.hours.shortDisplay,
-      closed: CONFIG.hours.closedDisplay,
-      open: minToLabel(OPEN_MIN),
-      close: minToLabel(CLOSE_MIN),
-      openShort: minToShort(OPEN_MIN),
-      closeShort: minToShort(CLOSE_MIN),
-      lastShort: minToShort(LAST_MIN),
-      doctors: doctorsText(),
-      doctorsShort: doctorsShortText(),
-      ...extra
-    };
-    return text.replace(/\{(\w+)(?::(\w+))?\}/g, (m, key, arg) =>
-      key === "price" ? (CONFIG.prices[arg] ? CONFIG.prices[arg].value : m)
-        : key === "specialist" ? specialistText(arg)
-        : (tokens[key] ?? m));
-  }
-  const R = CONFIG.bot.replies;
-
-  /* =====================================================================
-     TEXT ANALYSIS — normalisation, fuzzy matching, intent scoring
-     ===================================================================== */
   const norm = (s) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
     .replace(/['’`]/g, "").replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
   const stem = (w) => (w.length > 3 && w.endsWith("s") && !w.endsWith("ss") ? w.slice(0, -1) : w);
@@ -625,14 +383,12 @@
     }
     return d[a.length][b.length];
   }
-
   function wordMatch(tok, kw) {
     if (tok === kw) return true;
     if (kw.length >= 4 && tok.startsWith(kw) && tok.length - kw.length <= 4) return true;   // "whiten" → "whitening"
     const max = kw.length >= 9 ? 2 : kw.length >= 6 ? 1 : 0;                              // short words must be exact
     return max > 0 && Math.abs(tok.length - kw.length) <= max && editDistance(tok, kw) <= max;
   }
-
   // Multi-word keywords match in order, allowing up to 2 filler words between ("change MY appointment")
   function phraseMatch(tokens, words) {
     for (let i = 0; i < tokens.length; i++) {
@@ -646,35 +402,10 @@
     }
     return false;
   }
-
-  // Doctor names act as keywords for the "doctors" intent ("Is Dr. Sarah available?")
-  const doctorFaq = CONFIG.faq.find((f) => f.id === "doctors");
-  if (doctorFaq) DOCTORS.forEach((d) => doctorFaq.strong.push(d.first, d.last));
-
-  const INTENTS = CONFIG.faq.map((f) => ({
-    ...f,
-    kws: [...(f.strong || []).map((k) => ({ w: tokenize(k), pts: 3 })), ...(f.weak || []).map((k) => ({ w: tokenize(k), pts: 1 }))]
-  }));
-  const intentById = Object.fromEntries(INTENTS.map((i) => [i.id, i]));
-  const kwList = (arr) => arr.map(tokenize).filter((w) => w.length);
+  const kwList = (arr) => (arr || []).map(tokenize).filter((w) => w.length);
   const hasAny = (tokens, list) => list.some((w) => (w.length > 1 ? phraseMatch(tokens, w) : tokens.some((t) => wordMatch(t, w[0]))));
-  const TOPIC = kwList(CONFIG.bot.topicWords);
-  const OFFTOPIC = new Set(CONFIG.bot.offTopicWords.map(stem));
-  const URGENT = kwList(CONFIG.bot.urgentWords);
-  const FEAR = kwList(CONFIG.bot.fearWords);
-  const COMPARE = kwList(CONFIG.bot.compareWords);
 
-  function scoreIntent(tokens, intent) {
-    let score = 0;
-    const perToken = new Map();                    // each word contributes once per intent
-    for (const k of intent.kws) {
-      if (k.w.length > 1) { if (phraseMatch(tokens, k.w)) score += k.pts; continue; }
-      tokens.forEach((t, i) => { if (wordMatch(t, k.w[0])) perToken.set(i, Math.max(perToken.get(i) || 0, k.pts)); });
-    }
-    perToken.forEach((v) => (score += v));
-    return score;
-  }
-
+  // Shared regular expressions
   const Q_START = /^(what|whats|how|hows|when|where|wheres|who|whos|which|why|is|are|do|does|did|can|could|will|would|should|may|have|has)\b/;
   const INJECTION_RE = /\b(ignore|disregard|forget|override|bypass)\b[^.?!]{0,40}\b(instructions?|rules|prompts?|guidelines|directions|programming|system)\b|\bsystem prompt\b|\byou are now\b|\bpretend (to be|you are|you're)\b|\bact as (a|an)\b|\bjailbreak\b|\bdeveloper mode\b|\bnew instructions\b/i;
   const KEYBOARD_RE = /(qwer|wert|erty|rtyu|tyui|yuio|uiop|asdf|sdfg|dfgh|fghj|ghjk|hjkl|zxcv|xcvb|cvbn|vbnm)/;
@@ -684,161 +415,23 @@
     const words = n.split(" ").filter((w) => /^[a-z]+$/.test(w));
     return words.length > 0 && words.filter(isGibberishWord).length >= Math.ceil(words.length / 2);
   }
-
-  // Which treatment a fear/duration question is about (numb = done under local anesthesia)
-  function treatmentOf(a) {
-    const s = a.scores;
-    if (s.rootCanal >= 3) return { name: "root canal treatment", numb: true };
-    if (s.wisdom >= 3) return { name: "wisdom tooth removal", numb: true };
-    if (s.implants >= 3) return { name: "implant treatment", numb: true };
-    if (s.fillings >= 3 || /\b(crown|crowns)\b/.test(a.n)) return { name: "filling and crown treatment", numb: true };
-    if (s.braces >= 3) return { name: "orthodontic treatment", numb: false };
-    if (s.cleaning >= 3) return { name: "teeth cleaning", numb: false };
-    if (s.whitening >= 3) return { name: "teeth whitening", numb: false };
-    return null;
-  }
-
-  // Scores a message against every intent and flags special situations.
-  function analyze(text) {
-    const n = norm(text), tokens = tokenize(text), scores = {};
-    INTENTS.forEach((i) => { scores[i.id] = tokens.length ? scoreIntent(tokens, i) : 0; });
-    const a = {
-      text, n, tokens, scores,
-      question: text.includes("?") || Q_START.test(n),
-      injection: INJECTION_RE.test(text),
-      urgent: hasAny(tokens, URGENT),
-      compare: hasAny(tokens, COMPARE),
-      offTopic: tokens.some((t) => OFFTOPIC.has(t)),
-      onTopic: hasAny(tokens, TOPIC),
-      gibberish: isGibberish(n)
-    };
-    a.treatment = treatmentOf(a);
-    a.fear = hasAny(tokens, FEAR) ||
-      (/\b(is|does|will|would|do|can)\b.*\b(painful|hurt|hurts|pain)\b/.test(n) && (a.treatment !== null || /\b(it|procedure|treatment)\b/.test(n)));
-    return a;
-  }
-  const maxAnswerScore = (a) => Math.max(0, ...INTENTS.filter((i) => !NON_ANSWER.has(i.id)).map((i) => a.scores[i.id]));
-
-  // Specialist for the topics in a message (children first, then specific treatments)
-  const SPECIALTY_PRIORITY = ["children", "rootCanal", "braces", "wisdom", "implants", "fillings", "cleaning", "consultation", "pain"];
-  function specialistFor(scores) {
-    for (const id of SPECIALTY_PRIORITY) {
-      if (scores[id] >= 3) { const doc = DOCTORS.find((d) => d.treats.includes(id)); if (doc) return { doc, id }; }
-    }
-    return null;
-  }
-
-  /* =====================================================================
-     ENTITY EXTRACTION — name, phone, date, time, doctor from free text
-     ===================================================================== */
   const PHONE_RE = /(?:\+\d{1,3}[\s.-]?)?\(?\b\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b|\+\d[\d\s().-]{6,}\d|\b\d{7,15}\b/;
   const EARLIEST_RE = /\b(earliest|soonest|asap|as soon as possible|first available|next available)\b/;
-  const ANY_DOCTOR_RE = /\b(any doctor|any dentist|anyone|any one|no preference|doesn'?t matter|don'?t mind|whoever|either one|any of them)\b/;
   const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
   const MON = "(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\.?";
   const ORD = "(?:st|nd|rd|th)?";
   const DAY_NUM = { sun: 0, sunday: 0, mon: 1, monday: 1, tue: 2, tues: 2, tuesday: 2, wed: 3, wednesday: 3, thu: 4, thur: 4, thurs: 4, thursday: 4, fri: 5, friday: 5, sat: 6, saturday: 6 };
   const WEEKDAY_RE = /\b(?:(next|this|coming)\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday|sun|mon|tues|tue|wed|thurs|thur|thu|fri|sat)\b/;
-
-  // Builds a calendar date; flags impossible (31 Feb) and past dates.
-  function makeDate(match, y, m, d) {
-    if (m < 0 || m > 11 || d < 1 || d > 31) return { match, error: "impossible" };
-    const t = today(), explicitYear = y != null;
-    const yy = explicitYear ? (y < 100 ? 2000 + y : y) : t.getFullYear();
-    let dt = new Date(yy, m, d);
-    if (dt.getMonth() !== m) return { match, error: "impossible" };
-    if (dt < t) {
-      if (explicitYear || t - dt <= 60 * 864e5) return { match, error: "past" };   // recently passed → past
-      dt = new Date(yy + 1, m, d);                                              // e.g. "Jan 5" → next January
-      if (dt.getMonth() !== m) return { match, error: "impossible" };
-    }
-    return { match, date: dt };
-  }
-  // "on the 5th" → the next 5th of a month; "the 32nd" → impossible
-  function dayOnlyDate(match, d) {
-    if (d < 1 || d > 31) return { match, error: "impossible" };
-    const t = today();
-    for (let i = 0; i < 3; i++) {
-      const dt = new Date(t.getFullYear(), t.getMonth() + i, d);
-      if (dt.getDate() === d && dt >= t) return { match, date: dt };
-    }
-    return { match, error: "impossible" };
-  }
-
-  function findDate(s) {
-    const t = today();
-    let m;
-    if ((m = s.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/))) return makeDate(m[0], +m[1], +m[2] - 1, +m[3]);
-    if ((m = s.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/)) || (m = s.match(/\b(\d{1,2})-(\d{1,2})-(\d{2,4})\b/)))
-      return makeDate(m[0], m[3] ? +m[3] : null, +m[1] - 1, +m[2]);                                  // US order: MM/DD
-    if ((m = s.match(new RegExp(`\\b${MON}\\s+(\\d{1,2})${ORD}\\b(?:,?\\s+(\\d{4}))?`))))
-      return makeDate(m[0], m[3] ? +m[3] : null, MONTHS.indexOf(m[1]), +m[2]);                       // "Feb 31", "October 3rd"
-    if ((m = s.match(new RegExp(`\\b(\\d{1,2})${ORD}\\s+(?:of\\s+)?${MON}(?:,?\\s+(\\d{4}))?`))))
-      return makeDate(m[0], m[3] ? +m[3] : null, MONTHS.indexOf(m[2]), +m[1]);                       // "31st February"
-    if ((m = s.match(/\b(?:on\s+)?the\s+(\d{1,2})(?:st|nd|rd|th)\b/)) || (m = s.match(/\bon\s+the\s+(\d{1,2})\b/)))
-      return dayOnlyDate(m[0], +m[1]);                                                                 // "on the 32nd"
-    if ((m = s.match(/\bday after tomorrow\b/))) return { match: m[0], date: addDays(t, 2) };
-    if ((m = s.match(/\b(tomorrow|tmrw|tmr|tomorow|tommorow|tommorrow|tomorro|2morrow)\b/))) return { match: m[0], date: addDays(t, 1) };
-    if ((m = s.match(/\b(today|tonight)\b/))) return { match: m[0], date: t };
-    if ((m = s.match(/\b(yesterday|day before yesterday|last (?:week|month|sunday|monday|tuesday|wednesday|thursday|friday|saturday))\b/))) return { match: m[0], error: "past" };
-    if ((m = s.match(WEEKDAY_RE))) {
-      let diff = (DAY_NUM[m[2]] - t.getDay() + 7) % 7;
-      if (m[1] === "next" && diff === 0) diff = 7;
-      return { match: m[0], date: addDays(t, diff) };
-    }
-    return null;
-  }
-
-  function dateIssue(d) {
-    const t = today();
-    if (d < t) return "past";
-    if (!isOpenDay(d)) return d.getDay() === 0 ? "sunday" : "closed";
-    if (d > addDays(t, CONFIG.booking.maxDaysAhead)) return "far";
-    if (sameDay(d, t) && nowMin() >= LAST_MIN - 30) return "todayLate";
-    return null;
-  }
-
-  function findTime(s, lenient) {
-    const hint = /\b(afternoon|evening|tonight|night)\b/.test(s) ? "p" : /\bmorning\b/.test(s) ? "a" : null;
-    const build = (match, h, mm, ap) => {
-      h = +h; mm = mm ? +mm : 0;
-      if (h > 23 || mm > 59) return { match, error: "unclear" };
-      ap = ap || hint;
-      if (ap === "p" && h < 12) h += 12;
-      else if (ap === "a" && h === 12) h = 0;
-      else if (!ap && h >= 1 && h <= 7) h += 12;                    // "at 3" → 3 PM; "at 12" → noon
-      return { match, min: h * 60 + mm };
-    };
-    let m;
-    if ((m = s.match(/\b(12\s*noon|noon|midday)\b/))) return { match: m[0], min: 720 };
-    if ((m = s.match(/\b(\d{1,2})(?:[:.](\d{2}))?\s*(a\.?\s?m\.?|p\.?\s?m\.?)(?![a-z])/))) return build(m[0], m[1], m[2], m[3][0]);
-    if ((m = s.match(/\b(\d{1,2}):(\d{2})\b/))) return build(m[0], m[1], m[2], null);
-    if ((m = s.match(/\b(?:at|around|by|to|make it|say)\s+(\d{1,2})(?:\.(\d{2}))?(?![\d\/-])\b/))) return build(m[0], m[1], m[2], null);
-    if (lenient && (m = s.trim().match(/^(\d{1,2})(?:\.(\d{2}))?$/))) return build(m[0], m[1], m[2], null);
-    if ((m = s.match(/\b(morning|afternoon|evening|tonight|night)\b/)) && !/\bgood (morning|afternoon|evening|night)\b/.test(s))
-      return { match: m[0], part: m[1] === "tonight" || m[1] === "night" ? "evening" : m[1] };
-    return null;
-  }
-
-  // Checks a time against clinic hours, the chosen doctor's hours, and "now" (for today).
-  function timeIssue(min, date, doc) {
-    if (min < OPEN_MIN || min >= CLOSE_MIN) return "range";
-    if (min > LAST_MIN) return "late";
-    if (doc && (min < doc.fromMin || min > doc.lastMin)) return "doctorHours";
-    if (date && sameDay(date, today()) && min < nowMin() + 30) return "past";
-    return null;
-  }
-
-  // "Dr. Emily", "with Ali", "Emily Carter" (or just "Emily" when choosing a doctor)
-  function findDoctor(s, lenient) {
-    for (const doc of DOCTORS) {
-      const names = `(?:${doc.first}|${doc.last})`;
-      const re = new RegExp(`\\b(?:dr\\.?|doctor|with|see)\\s+${names}\\b|\\b${doc.first}\\s+${doc.last}\\b` + (lenient ? `|\\b${names}\\b` : ""));
-      const m = s.match(re);
-      if (m) return { doc, match: m[0] };
-    }
-    return null;
-  }
+  const NUM_WORDS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, couple: 2, "a couple": 2, "a couple of": 2 };
+  const NUM = "(\\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|a couple of|a couple|couple)";
+  const toNum = (s) => (/^\d+$/.test(s) ? +s : NUM_WORDS[s] || null);
+  const MY_BOOKING_RE = /\b(what (did|have) i (book|booked|schedule|scheduled|reserve|reserved)|my (booking|appointment|reservation|viewing|class) (details|summary|info)|(show|see|check|view|remind me of) (me )?my (booking|appointment|bookings|appointments|reservation|viewing|class)|when is my (appointment|booking|reservation|viewing|class)|what time is my (appointment|booking|reservation|viewing|class)|whats my (booking|appointment|reservation|viewing))\b/;
+  const ABORT_RE = /^(?:(?:please|ok|okay|actually|oh|no|um|hmm)\s+)*(stop|cancel|cancel (?:it|this|that|booking|the booking|my booking|request|the request|please)|never ?mind|forget (?:it|about it)|start over|exit|quit|i changed my mind|i dont want (?:it|to|this)|no thanks|no thank you)(?:\s+(?:please|thanks|thank you))?$/;
+  const YES_RE = /\b(yes|yeah|yep|yup|sure|confirm|confirmed|ok|okay|correct|go ahead|y|please do)\b/;
+  const NO_RE = /\b(no|nope|nah|cancel|dont|stop)\b/;
+  const EDIT_RE = /\b(edit|change|modify|wrong|fix)\b/;
+  const FEE_RE = /\b(cheap|cheaper|cheapest|cost|costs|price|prices|fee|fees|charge|charges|expensive|affordable)\b/;
+  const AVAIL_WORDS_RE = /\b(available|availability|free|working|work|works|in on|there|when|days?|schedule|hours)\b/;
 
   const NAME_INTRO_RE = /\b(my name is|my name's|name is|name's|name:|this is|call me|i am|i'm|im|it's|its|name to)\s+([a-zÀ-ɏ][a-zÀ-ɏ'.-]*(?:\s+[a-zÀ-ɏ][a-zÀ-ɏ'.-]*){0,3})/i;
   const WEAK_INTRO = new Set(["this is", "i am", "i'm", "im", "it's", "its"]);
@@ -847,1028 +440,1436 @@
     "monday tuesday wednesday thursday friday saturday sunday january february march april may june july august september october november december").split(" "));
   const NOT_NAME_START = new Set(("scared afraid nervous worried anxious in having looking not sure fine good ok okay available free busy new interested " +
     "calling trying going here sorry confused feeling getting very really so just still also back a an the currently done ready bleeding " +
-    "hurting asking wondering planning coming booking thinking glad happy sad tired late on at from with your pain pregnant").split(" "));
+    "hurting asking wondering planning coming booking thinking glad happy sad tired late on at from with your pain pregnant vegetarian vegan allergic hungry").split(" "));
   const NOT_A_NAME = new Set(("yes yeah yep no nope ok okay hello hi hey thanks thank test testing name idk none nothing nobody anonymous what why how who " +
     "book booking appointment dentist doctor please sure cancel stop help lol hmm maybe unknown user patient me myself my is the a an and " +
     "number phone at on for to in of it its i im any anyone same free").split(" "));
 
-  // Rejects numbers, symbols, filler words and keyboard-mash like "asdfgh".
-  function nameValid(s) {
-    const clean = s.replace(/\s+/g, " ").trim();
-    if (!/^[a-zA-ZÀ-ɏ][a-zA-ZÀ-ɏ .'-]{1,59}$/.test(clean)) return false;
-    const words = clean.toLowerCase().split(" ");
-    if (words.length > 4) return false;
-    for (const w of words) {
-      const letters = w.replace(/[.'-]/g, "");
-      if (!letters || (letters.length === 1 && words.length === 1)) return false;
-      if (NOT_A_NAME.has(letters) || isGibberishWord(letters)) return false;
-    }
-    const tokens = tokenize(clean);
-    if (hasAny(tokens, URGENT) || hasAny(tokens, FEAR) || hasAny(tokens, TOPIC)) return false;
-    const isTopic = (toks, min) => INTENTS.some((i) => i.id !== "doctors" && scoreIntent(toks, i) >= min);
-    if (!isTopic(tokens, 3)) return true;
-    // A surname may match a topic ("Lina Park", "Omar Khan") — accept if the first name itself is clearly not a topic
-    return tokens.length >= 2 && !isTopic(tokens.slice(0, 1), 1);
-  }
-  const stripIntro = (s) => s.replace(/^\s*(hi|hello|hey)\b[,!.\s]*/i, "")
-    .replace(/^\s*(my name is|my name's|name is|name:|this is|it's|its|i am|i'm|im|call me)\s+/i, "")
-    .replace(/[.,!]+$/, "").trim();
-
-  function findName(text) {
-    const m = text.replace(/’/g, "'").match(NAME_INTRO_RE);
-    if (!m) return null;
-    const words = [];
-    for (const w of m[2].split(/\s+/)) { if (NAME_STOP.has(w.toLowerCase().replace(/\.$/, ""))) break; words.push(w); }
-    if (!words.length) return null;
-    if (WEAK_INTRO.has(m[1].toLowerCase()) && NOT_NAME_START.has(words[0].toLowerCase())) return null;
-    const name = words.join(" ");
-    return nameValid(name) ? titleCase(name) : null;
-  }
-
-  // Pulls every piece of booking data out of one message.
-  function extractEntities(text, step) {
-    let rest = " " + text.toLowerCase().replace(/’/g, "'") + " ";
-    const e = {};
-    const cut = (m) => { rest = rest.replace(m, " "); };
-
-    const pm = rest.match(PHONE_RE);
-    if (pm) { e.phone = pm[0].trim().replace(/^\((?=[^)]*$)/, ""); cut(pm[0]); }
-    else if (step === "phone") {
-      const digits = text.replace(/\D/g, "");
-      if (digits.length >= 7 && digits.length <= 15 && !/[a-z]{3,}/i.test(text)) { e.phone = text.trim(); rest = " "; }
-    }
-
-    const dm = findDate(rest);
-    if (dm) {
-      cut(dm.match);
-      if (dm.error) e.dateError = dm.error;
-      else { const issue = dateIssue(dm.date); if (issue) e.dateError = issue; else e.date = dm.date; }
-      if (dm.match.includes("tonight")) e.part = "evening";
-    } else if (EARLIEST_RE.test(rest)) e.earliest = true;
-
-    const dr = findDoctor(rest, step === "doctor");
-    if (dr) { e.doctor = dr.doc; cut(dr.match); }
-    if (ANY_DOCTOR_RE.test(rest) || (step === "doctor" && /^\s*any\s*$/.test(rest))) e.anyDoctor = true;
-
-    const tm = findTime(rest, step === "time");
-    if (tm) {
-      cut(tm.match);
-      if (tm.error) e.timeError = "unclear";
-      else if (tm.part) e.part = e.part || tm.part;
-      else e.time = tm.min;
-    }
-
-    const nm = findName(text);
-    if (nm) {
-      e.name = nm;
-      // "My name is Sarah Khan" is the patient, not the doctor
-      if (dr && !/^(dr|doctor|with|see)\b/.test(dr.match.trim()) && nm.toLowerCase().includes(dr.doc.first)) delete e.doctor;
-    }
-    e.rest = rest.replace(/[^a-zÀ-ɏ' .-]/gi, " ").replace(/\s+/g, " ").trim();
-    return e;
-  }
-  const hasCore = (e) => !!(e.name || e.phone || e.date || e.dateError || e.time != null || e.timeError || e.doctor || e.anyDoctor || e.earliest);
-  const hasData = (e) => hasCore(e) || !!e.part;
-
-  const REASON_BY_INTENT = [["fillings", "Filling"], ["wisdom", "Wisdom tooth removal"], ["rootCanal", "Root canal"], ["implants", "Dental implant"],
-    ["braces", "Braces / aligners"], ["cleaning", "Teeth cleaning"], ["whitening", "Whitening"], ["consultation", "Checkup"], ["pain", "Tooth pain"]];
-  function reasonFrom(a) {
-    const found = (REASON_BY_INTENT.find(([id]) => a.scores[id] >= 3) || [])[1] || null;
-    if (a.scores.children >= 3) return found && found !== "Checkup" ? `${found} (child)` : "Child's checkup";
-    return found;
-  }
-
-  // Multi-person bookings: "me and my wife", "my husband and I", "both of us"
-  function multiPerson(n) {
-    let m = n.match(/\b(?:me and my|myself and my)\s+(wife|husband|partner|son|daughter|kid|child|mother|mom|mum|father|dad|brother|sister|friend)\b/) ||
-            n.match(/\bmy\s+(wife|husband|partner|son|daughter|mother|mom|mum|father|dad|brother|sister|friend)\s+and\s+(?:me|i|myself)\b/);
-    if (m) return "your " + m[1];
-    return /\b(both of us|two of us|for us both|two appointments|2 appointments)\b/.test(n) ? "the second person" : null;
-  }
-
   /* =====================================================================
-     DOCTOR AVAILABILITY
+     createBot — builds one chatbot from one config
      ===================================================================== */
-  function availableDoctors(date, time) {
-    if (!date || dateIssue(date)) return [];
-    const isToday = sameDay(date, today());
-    const on = DOCTORS.filter((doc) => worksOn(doc, date) && (!isToday || doc.lastMin >= nowMin() + 30));
-    if (time == null) return on;
-    const fit = on.filter((doc) => time >= doc.fromMin && time <= doc.lastMin);
-    return fit.length ? fit : on;
-  }
-  function nextDateFor(doc, from) {
-    let d = from && from > today() ? new Date(from) : today();
-    for (let i = 0; i < 35; i++, d = addDays(d, 1)) {
-      if (!worksOn(doc, d) || dateIssue(d)) continue;
-      if (sameDay(d, today()) && doc.lastMin < nowMin() + 30) continue;
+  function createBot(CONFIG, opts = {}) {
+    const B = CONFIG.business, BK = CONFIG.booking || {}, ST = CONFIG.staff || null, BOT = CONFIG.bot;
+    const T = { ...DEFAULT_TEXT, ...(BOT.replies || {}) };
+    const SHORT_ERRORS = { ...DEFAULT_SHORT_ERRORS, ...(BOT.shortErrors || {}) };
+    const TH = themeOf(CONFIG.theme);
+    const noun = BK.noun || "appointment";
+    const STAFF = ST ? ST.list : [];
+    const FIELDS = BK.fields || {};
+    const BOOK_STEPS = BK.steps || ["name", "phone", "date", "time"];
+    const RESCHED_STEPS = BK.rescheduleSteps || ["name", "phone", "date", "time"];
+
+    /* ---------- Opening hours (per weekday) ---------- */
+    const H = CONFIG.hours;
+    const DAYS = {};
+    if (H.days) for (const [k, v] of Object.entries(H.days)) DAYS[k] = { open: hmToMin(v[0]), close: hmToMin(v[1]) };
+    else H.openDays.forEach((dn) => { DAYS[dn] = { open: hmToMin(H.open), close: hmToMin(H.close) }; });
+    const LAST_GAP = H.lastSlot && H.close ? hmToMin(H.close) - hmToMin(H.lastSlot) : (H.lastSlotBeforeClose ?? 15);
+    Object.values(DAYS).forEach((x) => { x.last = x.close - LAST_GAP; });
+    const OPEN_MIN = Math.min(...Object.values(DAYS).map((x) => x.open));
+    const CLOSE_MIN = Math.max(...Object.values(DAYS).map((x) => x.close));
+    const LAST_MIN = Math.max(...Object.values(DAYS).map((x) => x.last));
+    const dayInfo = (d) => DAYS[d.getDay()] || null;
+    const isOpenDay = (d) => !!dayInfo(d);
+    const hoursTokens = (d) => {
+      const x = d && dayInfo(d);
+      const o = x ? x.open : OPEN_MIN, c = x ? x.close : CLOSE_MIN, l = x ? x.last : LAST_MIN;
+      return { open: minToLabel(o), close: minToLabel(c), openShort: minToShort(o), closeShort: minToShort(c), lastShort: minToShort(l) };
+    };
+
+    /* ---------- Staff (doctors / stylists / agents / trainers) ---------- */
+    const STAFF_LIST = STAFF.map((d) => {
+      const parts = d.name.replace(new RegExp(`^(${(ST.titles || ["dr"]).join("|")})\\.?\\s*`, "i"), "").split(/\s+/);
+      const fromMin = hmToMin(d.from), toMin = hmToMin(d.to);
+      return { ...d, first: parts[0].toLowerCase(), last: parts[parts.length - 1].toLowerCase(),
+        short: d.short || (ST.shortPrefix != null ? ST.shortPrefix : "Dr. ") + parts[0], fromMin, toMin };
+    });
+    const staffLast = (s, date) => Math.min(s.toMin - 15, date && dayInfo(date) ? dayInfo(date).last : LAST_MIN);
+    const rangeText = (s) => `${minToShort(s.fromMin)} – ${minToShort(s.toMin)}`;
+    const daysText = (s) => joinAnd(s.days.map((i) => DAY_SHORT[i]));
+    const worksOn = (s, date) => s.days.includes(date.getDay());
+    const staffText = () => joinAnd(STAFF_LIST.map((d) => `<b>${d.name}</b> (${d.specialty})`));
+    const staffShortList = () => joinAnd(STAFF_LIST.map((d) => `${d.name} (${d.specialty})`));
+    const specialistText = (topic) => { const d = STAFF_LIST.find((x) => (x.treats || []).includes(topic)); return d ? `<b>${d.name}</b>, our ${d.specialty}` : `our ${ST ? ST.plural : "team"}`; };
+    const staffVals = (s) => ({ staff: s.name, short: s.short, specialty: s.specialty, range: rangeText(s), days: daysText(s) });
+
+    // Replaces {tokens} in config texts with live values / links.
+    function fill(text, extra = {}) {
+      const c = B;
+      const tokens = {
+        business: esc(B.name), noun, Noun: cap(noun),
+        phone: `<a href="${telHref(c.phone)}">${c.phone}</a>`,
+        whatsapp: c.whatsapp ? `<a href="https://wa.me/${c.whatsapp.replace(/\D/g, "")}" target="_blank" rel="noopener">${c.whatsapp}</a>` : "",
+        email: c.email ? `<a href="mailto:${c.email}">${c.email}</a>` : "",
+        emergency: c.emergencyPhone ? `<a href="${telHref(c.emergencyPhone)}">${c.emergencyPhone}</a>` : "",
+        address: esc(`${c.address}, ${c.city}`),
+        mapsLink: `<a class="map-btn" href="${"https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(`${c.name}, ${c.address}, ${c.city}`)}" target="_blank" rel="noopener">📍 View on Google Maps</a>`,
+        hours: H.display, hoursShort: H.shortDisplay || H.display, closed: H.closedDisplay || "", openDaysText: H.daysText || "",
+        ...hoursTokens(null),
+        doctors: staffText(), staffList: staffText(), staffShortList: staffShortList(),
+        staffSingular: ST ? ST.singular : "", staffPlural: ST ? ST.plural : "",
+        anyStaff: ST ? T.anyStaff.replace("{staffSingular}", ST.singular) : "",
+        ...extra
+      };
+      return String(text).replace(/\{(\w+)(?::(\w+))?\}/g, (m, key, arg) =>
+        key === "price" ? (CONFIG.prices && CONFIG.prices[arg] ? CONFIG.prices[arg].value : m)
+          : key === "specialist" ? specialistText(arg)
+          : (tokens[key] ?? m));
+    }
+    const tx = (key, extra) => fill(T[key], extra);
+
+    /* ---------- Intents ---------- */
+    const staffFaq = ST && CONFIG.faq.find((f) => f.id === ST.intent);
+    if (staffFaq) STAFF_LIST.forEach((d) => staffFaq.strong.push(d.first, d.last));
+    const INTENTS = CONFIG.faq.map((f) => ({
+      ...f,
+      kws: [...(f.strong || []).map((k) => ({ w: tokenize(k), pts: 3 })), ...(f.weak || []).map((k) => ({ w: tokenize(k), pts: 1 }))]
+    }));
+    const intentById = Object.fromEntries(INTENTS.map((i) => [i.id, i]));
+    const TOPIC = kwList(BOT.topicWords);
+    const URGENT = kwList(BOT.urgentWords);
+    const FEAR = kwList(CONFIG.fear ? CONFIG.fear.words : []);
+    const COMPARE = kwList(BOT.compareWords || ["better", "best", "compare", "vs", "versus", "which one", "who should", "recommend", "prefer", "more experienced", "good"]);
+    // Own vocabulary (so another industry's words only count as off-topic when this bot doesn't use them)
+    const OWN = new Set();
+    INTENTS.forEach((i) => i.kws.forEach((k) => k.w.forEach((w) => OWN.add(w))));
+    TOPIC.forEach((w) => w.forEach((x) => OWN.add(x)));
+    Object.values(FIELDS).forEach((f) => (f.options || []).forEach((o) => [o.label, ...(o.match || [])].forEach((p) => tokenize(p).forEach((w) => OWN.add(w)))));
+    const OFFTOPIC = new Set((BOT.offTopicWords || []).map(stem));
+    INDUSTRY_WORDS.forEach((w) => { const t = tokenize(w); if (t.length === 1 && !OWN.has(t[0])) OFFTOPIC.add(t[0]); });
+    const OFFTOPIC_PHRASES = kwList(INDUSTRY_WORDS.filter((w) => w.includes(" ") && !tokenize(w).every((x) => OWN.has(x))));
+    const NON_ANSWER = new Set(["book", "reschedule", "greeting", "thanks", "bye"]);
+    const PRIORITY = INTENTS.filter((i) => i.priority).sort((a, b) => a.priority - b.priority);
+
+    function scoreIntent(tokens, intent) {
+      let score = 0;
+      const perToken = new Map();                    // each word contributes once per intent
+      for (const k of intent.kws) {
+        if (k.w.length > 1) { if (phraseMatch(tokens, k.w)) score += k.pts; continue; }
+        tokens.forEach((t, i) => { if (wordMatch(t, k.w[0])) perToken.set(i, Math.max(perToken.get(i) || 0, k.pts)); });
+      }
+      perToken.forEach((v) => (score += v));
+      return score;
+    }
+    const sc = (a, id) => a.scores[id] || 0;
+
+    // Which treatment a fear/duration question is about (dental: numb = done under local anesthesia)
+    function treatmentOf(a) {
+      if (!CONFIG.fear) return null;
+      for (const t of CONFIG.fear.treatments) {
+        if ((t.intent && sc(a, t.intent) >= 3) || (t.re && t.re.test(a.n))) return t;
+      }
+      return null;
+    }
+
+    // Scores a message against every intent and flags special situations.
+    function analyze(text) {
+      const n = norm(text), tokens = tokenize(text), scores = {};
+      INTENTS.forEach((i) => { scores[i.id] = tokens.length ? scoreIntent(tokens, i) : 0; });
+      const a = {
+        text, n, tokens, scores,
+        question: text.includes("?") || Q_START.test(n),
+        injection: INJECTION_RE.test(text),
+        urgent: URGENT.length > 0 && hasAny(tokens, URGENT),
+        compare: hasAny(tokens, COMPARE),
+        offTopic: tokens.some((t) => OFFTOPIC.has(t)) || hasAny(tokens, OFFTOPIC_PHRASES),
+        onTopic: hasAny(tokens, TOPIC),
+        gibberish: isGibberish(n)
+      };
+      a.treatment = treatmentOf(a);
+      a.fear = !!CONFIG.fear && (hasAny(tokens, FEAR) ||
+        (/\b(is|does|will|would|do|can)\b.*\b(painful|hurt|hurts|pain)\b/.test(n) && (a.treatment !== null || /\b(it|procedure|treatment)\b/.test(n))));
+      return a;
+    }
+    const maxAnswerScore = (a) => Math.max(0, ...INTENTS.filter((i) => !NON_ANSWER.has(i.id)).map((i) => a.scores[i.id]));
+
+    // Specialist for the topics in a message
+    function specialistFor(scores) {
+      if (!ST) return null;
+      for (const id of ST.priority || []) {
+        if ((scores[id] || 0) >= 3) { const doc = STAFF_LIST.find((d) => (d.treats || []).includes(id)); if (doc) return { doc, id }; }
+      }
+      return null;
+    }
+
+    /* =====================================================================
+       ENTITY EXTRACTION — name, phone, date, time, staff and custom fields
+       ===================================================================== */
+    function makeDate(match, y, m, d) {
+      if (m < 0 || m > 11 || d < 1 || d > 31) return { match, error: "impossible" };
+      const t = today(), explicitYear = y != null;
+      const yy = explicitYear ? (y < 100 ? 2000 + y : y) : t.getFullYear();
+      let dt = new Date(yy, m, d);
+      if (dt.getMonth() !== m) return { match, error: "impossible" };
+      if (dt < t) {
+        if (explicitYear || t - dt <= 60 * 864e5) return { match, error: "past" };   // recently passed → past
+        dt = new Date(yy + 1, m, d);                                              // e.g. "Jan 5" → next January
+        if (dt.getMonth() !== m) return { match, error: "impossible" };
+      }
+      return { match, date: dt };
+    }
+    function dayOnlyDate(match, d) {                                             // "on the 5th" → the next 5th
+      if (d < 1 || d > 31) return { match, error: "impossible" };
+      const t = today();
+      for (let i = 0; i < 3; i++) {
+        const dt = new Date(t.getFullYear(), t.getMonth() + i, d);
+        if (dt.getDate() === d && dt >= t) return { match, date: dt };
+      }
+      return { match, error: "impossible" };
+    }
+    function findDate(s) {
+      const t = today();
+      let m;
+      if ((m = s.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/))) return makeDate(m[0], +m[1], +m[2] - 1, +m[3]);
+      if ((m = s.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/)) || (m = s.match(/\b(\d{1,2})-(\d{1,2})-(\d{2,4})\b/)))
+        return makeDate(m[0], m[3] ? +m[3] : null, +m[1] - 1, +m[2]);                                  // US order: MM/DD
+      if ((m = s.match(new RegExp(`\\b${MON}\\s+(\\d{1,2})${ORD}\\b(?:,?\\s+(\\d{4}))?`))))
+        return makeDate(m[0], m[3] ? +m[3] : null, MONTHS.indexOf(m[1]), +m[2]);                       // "Feb 31", "October 3rd"
+      if ((m = s.match(new RegExp(`\\b(\\d{1,2})${ORD}\\s+(?:of\\s+)?${MON}(?:,?\\s+(\\d{4}))?`))))
+        return makeDate(m[0], m[3] ? +m[3] : null, MONTHS.indexOf(m[2]), +m[1]);                       // "31st February"
+      if ((m = s.match(/\b(?:on\s+)?the\s+(\d{1,2})(?:st|nd|rd|th)\b/)) || (m = s.match(/\bon\s+the\s+(\d{1,2})\b/)))
+        return dayOnlyDate(m[0], +m[1]);                                                                 // "on the 32nd"
+      if ((m = s.match(/\bday after tomorrow\b/))) return { match: m[0], date: addDays(t, 2) };
+      if ((m = s.match(/\b(tomorrow|tmrw|tmr|tomorow|tommorow|tommorrow|tomorro|2morrow)\b/))) return { match: m[0], date: addDays(t, 1) };
+      if ((m = s.match(/\b(today|tonight)\b/))) return { match: m[0], date: t };
+      if ((m = s.match(/\b(yesterday|day before yesterday|last (?:week|month|sunday|monday|tuesday|wednesday|thursday|friday|saturday))\b/))) return { match: m[0], error: "past" };
+      if ((m = s.match(WEEKDAY_RE))) {
+        let diff = (DAY_NUM[m[2]] - t.getDay() + 7) % 7;
+        if (m[1] === "next" && diff === 0) diff = 7;
+        return { match: m[0], date: addDays(t, diff) };
+      }
+      return null;
+    }
+    function dateIssue(d) {
+      const t = today();
+      if (d < t) return "past";
+      if (!isOpenDay(d)) return "closed";
+      if (d > addDays(t, BK.maxDaysAhead || 90)) return "far";
+      if (sameDay(d, t) && nowMin() >= dayInfo(d).last - 30) return "todayLate";
+      return null;
+    }
+
+    function findTime(s, lenient) {
+      const hint = /\b(afternoon|evening|tonight|night)\b/.test(s) ? "p" : /\bmorning\b/.test(s) ? "a" : null;
+      const within = (min) => min >= OPEN_MIN && min < CLOSE_MIN;
+      const build = (match, h, mm, ap) => {
+        h = +h; mm = mm ? +mm : 0;
+        if (h > 23 || mm > 59) return { match, error: "unclear" };
+        ap = ap || hint;
+        if (ap === "p" && h < 12) h += 12;
+        else if (ap === "a" && h === 12) h = 0;
+        else if (!ap && h >= 1 && h <= 11) {
+          const amOk = within(h * 60 + mm), pmOk = within((h + 12) * 60 + mm);
+          if (pmOk && !amOk) h += 12;                                // e.g. restaurant "at 8" → 8 PM
+          else if (!(amOk && !pmOk) && h <= 7) h += 12;              // "at 3" → 3 PM (both or neither fit)
+        }
+        return { match, min: h * 60 + mm };
+      };
+      let m;
+      if ((m = s.match(/\b(12\s*noon|noon|midday)\b/))) return { match: m[0], min: 720 };
+      if ((m = s.match(/\b(\d{1,2})(?:[:.](\d{2}))?\s*(a\.?\s?m\.?|p\.?\s?m\.?)(?![a-z])/))) return build(m[0], m[1], m[2], m[3][0]);
+      if ((m = s.match(/\b(\d{1,2}):(\d{2})\b/))) return build(m[0], m[1], m[2], null);
+      if ((m = s.match(/\b(?:at|around|by|to|make it|say)\s+(\d{1,2})(?:\.(\d{2}))?(?![\d\/-])\b(?!\s*(?:people|persons|guests|pax|adults|of us))/))) return build(m[0], m[1], m[2], null);
+      if (lenient && (m = s.trim().match(/^(\d{1,2})(?:\.(\d{2}))?$/))) return build(m[0], m[1], m[2], null);
+      if ((m = s.match(/\b(morning|afternoon|evening|tonight|night)\b/)) && !/\bgood (morning|afternoon|evening|night)\b/.test(s))
+        return { match: m[0], part: m[1] === "tonight" || m[1] === "night" ? "evening" : m[1] };
+      return null;
+    }
+    // Checks a time against the day's hours, the chosen staff member's hours, and "now" (for today).
+    function timeIssue(min, date, staff) {
+      const x = date && dayInfo(date);
+      const open = x ? x.open : OPEN_MIN, close = x ? x.close : CLOSE_MIN, last = x ? x.last : LAST_MIN;
+      if (min < open || min >= close) return "range";
+      if (min > last) return "late";
+      if (staff && (min < staff.fromMin || min > staffLast(staff, date))) return "staffHours";
+      if (date && sameDay(date, today()) && min < nowMin() + 30) return "past";
+      return null;
+    }
+
+    // "Dr. Emily", "with Ali", "Emily Carter" (or just "Emily" when choosing)
+    const STAFF_PREFIX = ST ? `(?:${[...(ST.titles || []).map((t) => t + "\\.?"), ST.singular, ...(ST.words || [])].join("|")}|with|see)` : "";
+    function findStaff(s, lenient) {
+      for (const doc of STAFF_LIST) {
+        const names = `(?:${doc.first}|${doc.last})`;
+        const re = new RegExp(`\\b${STAFF_PREFIX}\\s+(?:to\\s+|is\\s+)?${names}\\b|\\b${doc.first}\\s+${doc.last}\\b` + (lenient ? `|\\b${names}\\b` : ""));
+        const m = s.match(re);
+        if (m) return { doc, match: m[0] };
+      }
+      return null;
+    }
+    const ANY_STAFF_RE = new RegExp(`\\b(any ${ST ? ST.singular : "one"}|any ${ST ? (ST.words || [])[1] || ST.singular : "one"}|anyone|any one|no preference|doesn'?t matter|don'?t mind|whoever|either one|any of them)\\b`);
+
+    // Custom booking fields (guests, property, service, class…)
+    function findChoice(field, tokens, low, lenient) {
+      let best = null, bestScore = 0;
+      (field.options || []).forEach((o, i) => {
+        let score = 0;
+        [o.label, ...(o.match || [])].forEach((p) => { const w = tokenize(p); if (w.length && (w.length > 1 ? phraseMatch(tokens, w) : tokens.some((t) => wordMatch(t, w[0])))) score += w.length; });
+        if (lenient && new RegExp(`^\\s*${i + 1}\\s*$`).test(low)) score += 5;
+        if (score > bestScore) { best = o; bestScore = score; }
+      });
+      return best;
+    }
+    function findNumber(field, s, lenient) {
+      const units = field.units || "people|persons|person|guests|pax|adults|of us|ppl";
+      let m = s.match(new RegExp(`\\b${NUM}\\s*(?:${units})\\b`)) ||
+              s.match(new RegExp(`\\b(?:table|party|group|reservation|booking)\\s+(?:for|of)\\s+${NUM}\\b`)) ||
+              (field.allowFor && s.match(new RegExp(`\\bfor\\s+${NUM}\\b(?!\\s*(?:am|pm|a\\.m|p\\.m|:|st|nd|rd|th|\\/|-|\\d))`)));
+      if (!m && lenient) m = s.trim().match(new RegExp(`^${NUM}$`));
+      if (!m) return null;
+      return { match: m[0], value: toNum(m[1]) };
+    }
+
+    function nameValid(s) {
+      const clean = s.replace(/\s+/g, " ").trim();
+      if (!/^[a-zA-ZÀ-ɏ][a-zA-ZÀ-ɏ .'-]{1,59}$/.test(clean)) return false;
+      const words = clean.toLowerCase().split(" ");
+      if (words.length > 4) return false;
+      for (const w of words) {
+        const letters = w.replace(/[.'-]/g, "");
+        if (!letters || (letters.length === 1 && words.length === 1)) return false;
+        if (NOT_A_NAME.has(letters) || isGibberishWord(letters)) return false;
+      }
+      const tokens = tokenize(clean);
+      if (hasAny(tokens, URGENT) || hasAny(tokens, FEAR) || hasAny(tokens, TOPIC)) return false;
+      const isTopic = (toks, min) => INTENTS.some((i) => i.id !== (ST && ST.intent) && scoreIntent(toks, i) >= min);
+      if (!isTopic(tokens, 3)) return true;
+      // A surname may match a topic ("Lina Park", "Omar Khan") — accept if the first name itself is clearly not a topic
+      return tokens.length >= 2 && !isTopic(tokens.slice(0, 1), 1);
+    }
+    const stripIntro = (s) => s.replace(/^\s*(hi|hello|hey)\b[,!.\s]*/i, "")
+      .replace(/^\s*(my name is|my name's|name is|name:|this is|it's|its|i am|i'm|im|call me)\s+/i, "")
+      .replace(/[.,!]+$/, "").trim();
+    function findName(text) {
+      const m = text.replace(/’/g, "'").match(NAME_INTRO_RE);
+      if (!m) return null;
+      const words = [];
+      for (const w of m[2].split(/\s+/)) { if (NAME_STOP.has(w.toLowerCase().replace(/\.$/, ""))) break; words.push(w); }
+      if (!words.length) return null;
+      if (WEAK_INTRO.has(m[1].toLowerCase()) && NOT_NAME_START.has(words[0].toLowerCase())) return null;
+      const name = words.join(" ");
+      return nameValid(name) ? titleCase(name) : null;
+    }
+
+    // Pulls every piece of booking data out of one message.
+    function extractEntities(text, step) {
+      let rest = " " + text.toLowerCase().replace(/’/g, "'") + " ";
+      const e = { fields: {} };
+      const cut = (m) => { rest = rest.replace(m, " "); };
+
+      const pm = rest.match(PHONE_RE);
+      if (pm) { e.phone = pm[0].trim().replace(/^\((?=[^)]*$)/, ""); cut(pm[0]); }
+      else if (step === "phone") {
+        const digits = text.replace(/\D/g, "");
+        if (digits.length >= 7 && digits.length <= 15 && !/[a-z]{3,}/i.test(text)) { e.phone = text.trim(); rest = " "; }
+      }
+      // Number fields first ("table for 4") so the number isn't mistaken for a date or time
+      for (const [id, f] of Object.entries(FIELDS)) {
+        if (f.type !== "number") continue;
+        const r = findNumber(f, rest, step === id);
+        if (r) { e.fields[id] = r.value; cut(r.match); }
+      }
+      const dm = findDate(rest);
+      if (dm) {
+        cut(dm.match);
+        if (dm.error) e.dateError = dm.error;
+        else { const issue = dateIssue(dm.date); if (issue) { e.dateError = issue; e.dateRaw = dm.date; } else e.date = dm.date; }
+        if (dm.match.includes("tonight")) e.part = "evening";
+      } else if (EARLIEST_RE.test(rest)) e.earliest = true;
+
+      if (ST) {
+        const dr = findStaff(rest, step === "staff");
+        if (dr) { e.staff = dr.doc; e.staffMatch = dr.match; cut(dr.match); }
+        if (ANY_STAFF_RE.test(rest) || (step === "staff" && /^\s*any\s*$/.test(rest))) e.anyStaff = true;
+      }
+
+      const tm = findTime(rest, step === "time");
+      if (tm) {
+        cut(tm.match);
+        if (tm.error) e.timeError = "unclear";
+        else if (tm.part) e.part = e.part || tm.part;
+        else e.time = tm.min;
+      }
+
+      const toks = tokenize(rest);
+      for (const [id, f] of Object.entries(FIELDS)) {
+        if (f.type !== "choice") continue;
+        const o = findChoice(f, toks, rest, step === id);
+        if (o) e.fields[id] = o;
+      }
+
+      const nm = findName(text);
+      if (nm) {
+        e.name = nm;
+        // "My name is Sarah Khan" is the customer, not the staff member
+        if (e.staff && !new RegExp(`^${STAFF_PREFIX}\\b`).test(e.staffMatch.trim()) && nm.toLowerCase().includes(e.staff.first)) delete e.staff;
+      }
+      e.rest = rest.replace(/[^a-zÀ-ɏ' .-]/gi, " ").replace(/\s+/g, " ").trim();
+      return e;
+    }
+    const hasFields = (e) => Object.keys(e.fields || {}).length > 0;
+    const hasCore = (e) => !!(e.name || e.phone || e.date || e.dateError || e.time != null || e.timeError || e.staff || e.anyStaff || e.earliest || hasFields(e));
+    const hasData = (e) => hasCore(e) || !!e.part;
+
+    // Free-text field filled from the topic of a message (dental: "book a cleaning" → reason "Teeth cleaning")
+    function textFieldFrom(a) {
+      const out = {};
+      for (const [id, f] of Object.entries(FIELDS)) {
+        if (f.type !== "text" || !f.fromIntents) continue;
+        const found = (f.fromIntents.find(([iid]) => sc(a, iid) >= 3) || [])[1] || null;
+        if (f.childIntent && sc(a, f.childIntent) >= 3) out[id] = found && found !== f.childDefaultFrom ? `${found} (child)` : f.childLabel;
+        else if (found) out[id] = found;
+      }
+      return out;
+    }
+
+    // Multi-person bookings: "me and my wife", "my husband and I", "both of us"
+    function multiPerson(n) {
+      const m = n.match(/\b(?:me and my|myself and my)\s+(wife|husband|partner|son|daughter|kid|child|mother|mom|mum|father|dad|brother|sister|friend)\b/) ||
+                n.match(/\bmy\s+(wife|husband|partner|son|daughter|mother|mom|mum|father|dad|brother|sister|friend)\s+and\s+(?:me|i|myself)\b/);
+      if (m) return "your " + m[1];
+      return /\b(both of us|two of us|for us both|two appointments|2 appointments)\b/.test(n) ? "the second person" : null;
+    }
+
+    /* =====================================================================
+       AVAILABILITY
+       ===================================================================== */
+    function availableStaff(date, time) {
+      if (!date || dateIssue(date)) return [];
+      const isToday = sameDay(date, today());
+      const on = STAFF_LIST.filter((s) => worksOn(s, date) && (!isToday || staffLast(s, date) >= nowMin() + 30));
+      if (time == null) return on;
+      const fit = on.filter((s) => time >= s.fromMin && time <= staffLast(s, date));
+      return fit.length ? fit : on;
+    }
+    function nextDateFor(s, from) {
+      let d = from && from > today() ? new Date(from) : today();
+      for (let i = 0; i < 35; i++, d = addDays(d, 1)) {
+        if (!s.days.includes(d.getDay()) || dateIssue(d)) continue;
+        if (s.fromMin != null && sameDay(d, today()) && staffLast(s, d) < nowMin() + 30) continue;
+        return d;
+      }
+      return null;
+    }
+    function firstOpenDate() {
+      let d = today();
+      if (!(isOpenDay(d) && nowMin() < dayInfo(d).last - 30)) d = addDays(d, 1);
+      while (!isOpenDay(d)) d = addDays(d, 1);
       return d;
     }
-    return null;
-  }
-  function firstOpenDate() {
-    let d = today();
-    if (!(isOpenDay(d) && nowMin() < LAST_MIN - 30)) d = addDays(d, 1);
-    while (!isOpenDay(d)) d = addDays(d, 1);
-    return d;
-  }
-  // Nearest day + time + doctor (optionally for one preferred doctor)
-  function earliestSlot(pref) {
-    const t = today();
-    for (let i = 0; i <= 28; i++) {
-      const date = addDays(t, i);
-      if (dateIssue(date)) continue;
-      let best = null;
-      for (const doc of pref ? [pref] : DOCTORS) {
-        if (!worksOn(doc, date)) continue;
-        let start = doc.fromMin;
-        if (i === 0) start = Math.max(start, Math.ceil((nowMin() + 30) / 30) * 30);
-        if (start <= doc.lastMin && (!best || start < best.time)) best = { date, time: start, doctor: doc };
+    function earliestSlot(pref) {
+      const t = today();
+      for (let i = 0; i <= 28; i++) {
+        const date = addDays(t, i);
+        if (dateIssue(date)) continue;
+        const x = dayInfo(date);
+        let start0 = x.open;
+        if (i === 0) start0 = Math.max(start0, Math.ceil((nowMin() + 30) / 30) * 30);
+        if (!ST) { if (start0 <= x.last) return { date, time: start0 }; continue; }
+        let best = null;
+        for (const s of pref ? [pref] : STAFF_LIST) {
+          if (!worksOn(s, date)) continue;
+          const start = Math.max(s.fromMin, start0);
+          if (start <= staffLast(s, date) && (!best || start < best.time)) best = { date, time: start, staff: s };
+        }
+        if (best) return best;
       }
-      if (best) return best;
+      return null;
     }
-    return null;
-  }
-  // Clickable doctor cards; `sendFor(doc)` is the message sent when a card is tapped
-  function docCards(docs, rec, sendFor) {
-    const sorted = rec && docs.includes(rec) ? [rec, ...docs.filter((x) => x !== rec)] : docs;
-    return `<div class="doc-list">` + sorted.map((doc) =>
-      `<button type="button" class="doc-card" data-send="${esc(sendFor(doc))}">` +
-        `<span class="doc-top"><span class="doc-name">${esc(doc.name)}</span>${doc === rec ? `<span class="doc-tag">Recommended</span>` : ""}</span>` +
-        `<span class="doc-spec">${esc(doc.specialty)}</span><span class="doc-hours">${rangeText(doc)}</span></button>`).join("") + `</div>`;
-  }
-
-  /* =====================================================================
-     BUILD THE WIDGET (Shadow DOM)
-     ===================================================================== */
-  // Web fonts must be registered on the main document to be usable inside a shadow root.
-  if (!document.querySelector("link[data-bs-chat-font]")) {
-    const font = document.createElement("link");
-    font.rel = "stylesheet";
-    font.href = "https://fonts.googleapis.com/css2?family=Outfit:wght@300;500&display=swap";
-    font.setAttribute("data-bs-chat-font", "");
-    document.head.appendChild(font);
-  }
-
-  const host = document.createElement("div");
-  host.id = "bright-smile-chatbot";
-  const shadow = host.attachShadow({ mode: "open" });
-  shadow.innerHTML = `
-    <style>${CSS}</style>
-    <div class="bs-root">
-      <div class="chat-tooltip" role="button" tabindex="-1">${esc(CONFIG.bot.tooltip)}</div>
-
-      <button class="chat-launcher" aria-label="Open chat" aria-expanded="false">
-        <span class="ico i-chat">${icon("chatFill", 28)}</span>
-        <span class="ico i-close">${icon("close", 26)}</span>
-        <span class="unread">1</span>
-      </button>
-
-      <section class="chat-window" role="dialog" aria-label="Chat with clinic assistant">
-        <div class="chat-head">
-          <div class="bot-avatar">${icon("tooth", 23)}</div>
-          <div class="who"><span class="name">${esc(CONFIG.bot.name)}</span><span class="status"><i></i>Online</span></div>
-          <button class="head-btn restart" title="Restart conversation" aria-label="Restart conversation">${icon("refresh", 17)}</button>
-          <button class="head-btn close" title="Close" aria-label="Close chat">${icon("close", 18)}</button>
-        </div>
-        <div class="chat-body" aria-live="polite"></div>
-        <div class="chips"></div>
-        <form class="chat-input" autocomplete="off">
-          <input type="text" placeholder="Type your message…" aria-label="Type your message" maxlength="300">
-          <button class="send-btn" type="submit" aria-label="Send">${icon("send", 19)}</button>
-        </form>
-        <div class="chat-foot">Demo assistant · runs entirely in your browser</div>
-      </section>
-    </div>`;
-
-  const $ = (s) => shadow.querySelector(s);
-  const root = $(".bs-root"), chatBody = $(".chat-body"), chipsEl = $(".chips"), input = $(".chat-input input");
-  const launcher = $(".chat-launcher"), tooltip = $(".chat-tooltip"), unreadEl = $(".unread");
-  let started = false, unread = 0, queue = Promise.resolve(), session = 0;
-  const isOpen = () => root.classList.contains("open");
-  const isMobile = () => window.matchMedia("(max-width: 560px)").matches;
-
-  /* =====================================================================
-     CHAT UI
-     ===================================================================== */
-  function scrollDown() { chatBody.scrollTop = chatBody.scrollHeight; }
-
-  function addMessage(role, html) {
-    const row = document.createElement("div");
-    row.className = "msg " + role;
-    row.innerHTML = (role === "bot" ? `<div class="mini-av">${icon("tooth", 15)}</div>` : "") +
-      `<div class="col"><div class="bubble">${html}</div><time>${clockNow()}</time></div>`;
-    chatBody.appendChild(row);
-    scrollDown();
-    if (role === "bot" && !isOpen()) setUnread(unread + 1);
-  }
-
-  function setChips(list = []) {
-    chipsEl.innerHTML = "";
-    list.forEach((label) => {
-      const b = document.createElement("button");
-      b.type = "button"; b.className = "chip"; b.textContent = label;
-      b.onclick = () => sendUser(label);
-      chipsEl.appendChild(b);
-    });
-    scrollDown();
-  }
-
-  // Doctor cards inside messages are clickable
-  chatBody.addEventListener("click", (ev) => {
-    const el = ev.target.closest("[data-send]");
-    if (el) sendUser(el.getAttribute("data-send"));
-  });
-
-  // Queue bot replies so they appear one after another with a typing indicator.
-  function bot(html, chips) {
-    const mySession = session;
-    queue = queue.then(() => new Promise((resolve) => {
-      if (mySession !== session) return resolve();
-      const t = document.createElement("div");
-      t.className = "msg bot typing";
-      t.innerHTML = `<div class="mini-av">${icon("tooth", 15)}</div><div class="col"><div class="bubble"><span></span><span></span><span></span></div></div>`;
-      chatBody.appendChild(t); scrollDown();
-      const plain = html.replace(/<[^>]+>/g, "");
-      const delay = 450 + Math.min(plain.length * 9, 1000) + Math.random() * 250;
-      setTimeout(() => {
-        t.remove();
-        if (mySession === session) { addMessage("bot", html); if (chips) setChips(chips); }
-        resolve();
-      }, delay);
-    }));
-    return queue;
-  }
-
-  function sendUser(text) {
-    text = String(text).trim();
-    if (!text) return;
-    addMessage("user", esc(text));
-    setChips([]);
-    input.value = "";
-    if (Flow.active) handleFlow(text); else respond(text);
-  }
-
-  /* =====================================================================
-     ANSWERS — what to say for a question (priority: urgent → medical →
-     fear → doctors → availability → specialist → prices → hours → FAQ)
-     ===================================================================== */
-  const NON_ANSWER = new Set(["book", "reschedule", "greeting", "thanks", "bye"]);
-  const SERVICE_IDS = ["consultation", "cleaning", "fillings", "rootCanal", "whitening", "braces", "implants", "wisdom", "children"];
-  const URGENT_CHIPS = ["Book earliest appointment", "Location"];
-  const PRICE_INTENTS = { consultation: "consultation", cleaning: "cleaning", fillings: "filling", rootCanal: "rootCanal", whitening: "whitening", wisdom: "wisdom", braces: "braces", implants: "implant" };
-  const SERVICE_LABEL = { braces: "braces or aligners", rootCanal: "a root canal", implants: "implants", wisdom: "wisdom tooth removal", children: "your child's visit",
-    consultation: "a checkup", cleaning: "a cleaning", fillings: "fillings", pain: "tooth pain" };
-  const DO_YOU_RE = /\b(do you (do|offer|provide|have|perform)|can you (do|remove)|how much|price|cost)\b/;
-  const FEE_RE = /\b(cheap|cheaper|cheapest|cost|costs|price|prices|fee|fees|charge|charges|expensive|affordable)\b/;
-  const AVAIL_WORDS_RE = /\b(available|availability|free|working|work|works|in on|there|when|days?|schedule|hours)\b/;
-  const AVAIL_RE = /\b(who|which doctors?|which dentists?|what doctors?|any doctors?|doctors?)\b[^?]*\b(available|free|working|on duty)\b|\bwhos (available|working|in|on)\b/;
-  const SPECIALIST_Q = /\b(which|what|who)\b[^.]*\b(doctor|dentist|specialist)\b|\bwho (does|do|handles|treats|can|should)\b|\bwhen\b/;
-  const MY_BOOKING_RE = /\b(what (did|have) i (book|booked|schedule|scheduled)|my (booking|appointment) (details|summary|info)|(show|see|check|view|remind me of) (me )?my (booking|appointment|bookings|appointments)|when is my (appointment|booking)|what time is my (appointment|booking)|whats my (booking|appointment))\b/;
-  const QTY_RE = /\b(\d{1,2}|two|three|four|five|six|seven|eight|nine|ten)\s+(fillings?|implants?|cleanings?|whitening sessions?|sessions?|checkups?|consultations?|root canals?|wisdom teeth|wisdom tooth removals?)\b/;
-  const QTY_WORDS = { two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
-  const QTY_KEY = [[/filling/, "filling"], [/implant/, "implant"], [/cleaning/, "cleaning"], [/session|whitening/, "whitening"], [/checkup|consultation/, "consultation"], [/root canal/, "rootCanal"], [/wisdom/, "wisdom"]];
-
-  const money = (n) => "$" + n.toLocaleString("en-US");
-  const priceNums = (p) => (p.value.match(/\d[\d,]*/g) || []).map((x) => +x.replace(/,/g, ""));
-
-  function pricesHtml() {
-    const rows = Object.values(CONFIG.prices).map((p) => `<div class="pl-row"><span>${esc(p.label)}</span><span>${esc(p.value)}</span></div>`).join("");
-    return `Here's an overview of our main prices:<div class="price-list">${rows}</div><div class="pl-note">We'll confirm the exact cost of any treatment after your checkup.</div>`;
-  }
-  function servicesHtml() {
-    return `We offer ${joinAnd(CONFIG.services.map((s) => s.toLowerCase()))}. Which one would you like to know more about?`;
-  }
-
-  // "cleaning and whitening together" → each price + the total
-  function multiPriceHtml(ids) {
-    let min = 0, max = 0, from = false, priced = 0;
-    const parts = ids.map((id) => {
-      const p = CONFIG.prices[PRICE_INTENTS[id]];
-      const isFrom = /\(from\)/i.test(p.label);
-      const label = p.label.replace(/\s*\(from\)\s*/i, "").toLowerCase();
-      const nums = priceNums(p);
-      if (!nums.length) return `${label} ${/&|s$/.test(label) ? "are" : "is"} priced ${p.value.toLowerCase()}`;
-      priced++; min += nums[0]; max += nums[nums.length - 1]; if (isFrom) from = true;
-      return isFrom ? `a ${label} starts from ${p.value}` : `${label} is ${p.value}`;
-    });
-    let html = joinAnd(parts);
-    html = html.charAt(0).toUpperCase() + html.slice(1) + ".";
-    if (priced >= 2) html += ` Together, that's <b>${from ? "from " + money(min) : min === max ? money(min) : money(min) + "–" + money(max)}</b>.`;
-    return html;
-  }
-  // "How much for 3 fillings?" → 3 × $120 = $360
-  function quantityHtml(n) {
-    const m = n.match(QTY_RE);
-    if (!m) return null;
-    const qty = /^\d+$/.test(m[1]) ? +m[1] : QTY_WORDS[m[1]];
-    const key = (QTY_KEY.find(([re]) => re.test(m[2])) || [])[1];
-    const p = key && CONFIG.prices[key];
-    if (!p || qty < 2) return null;
-    const nums = priceNums(p);
-    if (!nums.length) return null;
-    const lo = nums[0] * qty, hi = nums[nums.length - 1] * qty, isFrom = /\(from\)/i.test(p.label);
-    const total = isFrom ? "from " + money(lo) : lo === hi ? money(lo) : money(lo) + "–" + money(hi);
-    const each = /per /.test(p.value) ? p.value : p.value + " each";
-    return `${qty} ${m[2]} would be <b>${total}</b> (${each}).`;
-  }
-
-  function urgentHtml(askedMedicine) {
-    return fill(R.urgent) + (askedMedicine ? " " + R.urgentNoMedicine : "") + " " + R.urgentOffer;
-  }
-  function fearHtml(a) {
-    const t = a.treatment;
-    if (!t) return fill(R.fearGeneral);
-    return fill(t.numb ? R.fearNumb : R.fearGentle, { treatment: t.name });
-  }
-  function openOnHtml(e) {
-    if (e.dateError === "sunday" || e.dateError === "closed") return fill(R.closedOn);
-    if (e.date) return fill(R.openOn, { date: fmtDate(e.date) });
-    return null;
-  }
-  function answerHtml(id) {
-    if (id === "prices") return pricesHtml();
-    if (id === "services") return servicesHtml();
-    return fill(intentById[id].answer);
-  }
-  const dateErrorHtml = (code) => errorText({ field: "date", code });
-
-  // "Who is available on October 3rd?"
-  function availabilityAnswer(e, inFlow) {
-    if (e.dateError) return { html: dateErrorHtml(e.dateError), chips: [], info: true };
-    let date = e.date || today();
-    if (!e.date && availableDoctors(date).length === 0) date = firstOpenDate();
-    const docs = availableDoctors(date, null);
-    if (!docs.length) return { html: fill(R.noDoctors, { date: fmtDate(date) }), chips: [], info: true };
-    const send = (doc) => (inFlow ? `${doc.name} on ${fmtShort(date)}` : `Book with ${doc.name} on ${fmtShort(date)}`);
-    return { html: fill(R.availableOn, { date: fmtDate(date) }) + docCards(docs, null, send), chips: [], info: true };
-  }
-  // "Is Dr. James available on 2nd October?"
-  function doctorAvailabilityAnswer(doc, e) {
-    if (e.dateError) return { html: dateErrorHtml(e.dateError), chips: [], info: true };
-    const vals = { doctor: doc.name, short: doc.short, specialty: doc.specialty, range: rangeText(doc), days: daysText(doc) };
-    if (!e.date) {
-      const next = nextDateFor(doc);
-      return { html: fill(R.doctorGeneral, { ...vals, next: next ? relDate(next) : "—" }), chips: next ? [`Book with ${doc.short} on ${fmtShort(next)}`] : [], info: true };
-    }
-    if (worksOn(doc, e.date)) {
-      return { html: fill(R.doctorYes, { ...vals, date: fmtDate(e.date) }), chips: [`Book with ${doc.short} on ${fmtShort(e.date)}`], info: true };
-    }
-    const next = nextDateFor(doc, e.date);
-    return { html: fill(R.doctorNo, { ...vals, weekday: weekdayPlural(e.date), next: next ? relDate(next) : "—" }),
-      chips: next ? [`Book with ${doc.short} on ${fmtShort(next)}`] : [], info: true };
-  }
-  // "I need braces, which doctor and when?"
-  function specialistAnswer(spec) {
-    const doc = spec.doc, next = nextDateFor(doc);
-    return { html: fill(R.specialist, { service: SERVICE_LABEL[spec.id] || "this treatment", doctor: doc.name, short: doc.short, specialty: doc.specialty,
-      days: daysText(doc), range: rangeText(doc), next: next ? relDate(next) : "—" }), chips: [`Book with ${doc.short}`] };
-  }
-
-  function buildAnswer(a, e, inFlow) {
-    const s = a.scores, n = a.n;
-    if (a.urgent) return { html: urgentHtml(s.medical >= 3), chips: URGENT_CHIPS };
-    if (s.medical >= 3) return { html: fill(intentById.medical.answer), chips: URGENT_CHIPS };
-    if (s.safety >= 3) return { html: fill(intentById.safety.answer), chips: intentById.safety.chips };
-    if (a.fear) {
-      const svc = SERVICE_IDS.filter((id) => s[id] >= 3);
-      const lead = svc.length && DO_YOU_RE.test(n) ? answerHtml(svc[0]) + "<br><br>" : "";   // "do you do X and does it hurt?"
-      return { html: lead + fearHtml(a), chips: ["Book Appointment", "Doctors"] };
-    }
-    if (s.doctors >= 3 && FEE_RE.test(n)) return { html: fill(R.doctorFees), chips: ["Doctors", "Book Appointment"] };
-    if (s.doctors >= 3 && a.compare) return { html: fill(R.compareDoctors), chips: ["Book Appointment"] };
-    if (e.doctor && a.question && (e.date || e.dateError || AVAIL_WORDS_RE.test(n))) return doctorAvailabilityAnswer(e.doctor, e);
-    if (AVAIL_RE.test(n)) return availabilityAnswer(e, inFlow);
-    const spec = specialistFor(s);
-    if (spec && spec.id !== "pain" && SPECIALIST_Q.test(n)) return specialistAnswer(spec);
-    const qty = quantityHtml(n);
-    if (qty) return { html: qty, chips: ["Book Appointment", "Payment options"] };
-    if (s.duration >= 3 && a.treatment && s.consultation < 3) return { html: fill(R.durationOther), chips: ["Book Appointment"] };
-
-    const priced = Object.keys(PRICE_INTENTS).filter((id) => s[id] >= 3);
-    if (priced.length >= 2) return { html: multiPriceHtml(priced), chips: ["Book Appointment", "Payment options"] };
-
-    if ((s.timings >= 1 || s.weekends >= 1) && a.question) {
-      const h = openOnHtml(e);
-      if (h) return { html: h, chips: ["Book Appointment", "Location"], info: true };
+    function staffCards(list, rec, sendFor) {
+      const sorted = rec && list.includes(rec) ? [rec, ...list.filter((x) => x !== rec)] : list;
+      return `<div class="doc-list">` + sorted.map((s) =>
+        `<button type="button" class="doc-card" data-send="${esc(sendFor(s))}">` +
+          `<span class="doc-top"><span class="doc-name">${esc(s.name)}</span>${s === rec ? `<span class="doc-tag">${esc(T.recommendedTag)}</span>` : ""}</span>` +
+          `<span class="doc-spec">${esc(s.specialty)}</span><span class="doc-hours">${rangeText(s)}</span></button>`).join("") + `</div>`;
     }
 
-    const candidates = INTENTS.filter((i) => !NON_ANSWER.has(i.id));
-    let ids = candidates.filter((i) => s[i.id] >= 3).sort((x, y) => s[y.id] - s[x.id]).map((i) => i.id);
-    if (!ids.length) {
-      const top = candidates.slice().sort((x, y) => s[y.id] - s[x.id])[0];
-      const need = inFlow ? (a.question ? 2 : Infinity) : 1;
-      if (top && s[top.id] >= need) ids = [top.id];
+    /* =====================================================================
+       BUILD THE WIDGET (Shadow DOM)
+       ===================================================================== */
+    if (!document.querySelector("link[data-bs-chat-font]")) {
+      const font = document.createElement("link");          // web fonts must be registered on the main document
+      font.rel = "stylesheet";
+      font.href = "https://fonts.googleapis.com/css2?family=Outfit:wght@300;500&display=swap";
+      font.setAttribute("data-bs-chat-font", "");
+      document.head.appendChild(font);
     }
-    if (!ids.length) return null;
-    // Avoid overlapping answers to the same question
-    if (ids.length > 1) ids = ids.filter((id) => id !== "prices" && id !== "doctors");
-    if (ids.includes("weekends")) ids = ids.filter((id) => id !== "timings");
-    if (ids.includes("pain")) ids = ids.filter((id) => id !== "emergency");
-    if (!ids.length) return null;
-    ids = ids.slice(0, 3);
-    return { html: ids.map(answerHtml).join("<br><br>"), chips: intentById[ids[0]].chips || CONFIG.bot.quickReplies };
-  }
+    const host = document.createElement("div");
+    host.id = "demo-chatbot";
+    const shadow = host.attachShadow({ mode: "open" });
+    shadow.innerHTML = `
+      <style>${CSS_TEMPLATE(TH)}</style>
+      <div class="bs-root">
+        <div class="chat-tooltip" role="button" tabindex="-1">${esc(BOT.tooltip)}</div>
+        <button class="chat-launcher" aria-label="Open chat" aria-expanded="false">
+          <span class="ico i-chat">${icon("chatFill", 28).replace(/__A1__/g, TH.a1)}</span>
+          <span class="ico i-close">${icon("close", 26)}</span>
+          <span class="unread">1</span>
+        </button>
+        <section class="chat-window" role="dialog" aria-label="Chat with ${esc(B.name)}">
+          <div class="chat-head">
+            <div class="bot-avatar">${icon(TH.icon, 23)}</div>
+            <div class="who"><span class="name">${esc(BOT.name)}</span><span class="status"><i></i>${esc(T.online)}</span></div>
+            ${opts.onSwitch ? `<button class="head-btn switch" title="${esc(T.switchIndustry)}" aria-label="${esc(T.switchIndustry)}">${icon("grid", 17)}</button>` : ""}
+            <button class="head-btn restart" title="Restart conversation" aria-label="Restart conversation">${icon("refresh", 17)}</button>
+            <button class="head-btn close" title="Close" aria-label="Close chat">${icon("close", 18)}</button>
+          </div>
+          <div class="chat-body" aria-live="polite"></div>
+          <div class="chips"></div>
+          <form class="chat-input" autocomplete="off">
+            <input type="text" placeholder="${esc(T.placeholder)}" aria-label="Type your message" maxlength="300">
+            <button class="send-btn" type="submit" aria-label="Send">${icon("send", 19)}</button>
+          </form>
+          <div class="chat-foot">${esc(T.footer)}</div>
+        </section>
+      </div>`;
 
-  /* ---------- "What did I book?" ---------- */
-  const Session = { bookings: [] };
-  function recordCard(rec) {
-    const row = (k, v) => (v ? `<div class="summary-row"><span>${k}</span><span>${esc(v)}</span></div>` : "");
-    return `<div class="summary"><div class="summary-head">${icon("calendar", 14)} Appointment summary</div>` +
-      row("Name", rec.name) + row("Phone", rec.phone) + row("Date", rec.date ? fmtDate(fromISO(rec.date)) : "") + row("Time", rec.time) +
-      row("Doctor", rec.doctor) + row("Reason", rec.reason) + `</div>`;
-  }
-  function showMyBookings(chips) {
-    let list = Session.bookings.slice(-3);
-    if (!list.length) {
-      try { const last = (JSON.parse(localStorage.getItem(STORE_KEY)) || []).find((r) => r.type === "new"); if (last) list = [last]; } catch (e) { /* ignore */ }
+    const $ = (s) => shadow.querySelector(s);
+    const root = $(".bs-root"), chatBody = $(".chat-body"), chipsEl = $(".chips"), input = $(".chat-input input");
+    const launcher = $(".chat-launcher"), tooltip = $(".chat-tooltip"), unreadEl = $(".unread");
+    let started = false, unread = 0, queue = Promise.resolve(), session = 0, destroyed = false;
+    const timers = [];
+    const later = (fn, ms) => { const id = setTimeout(() => { if (!destroyed) fn(); }, ms); timers.push(id); return id; };
+    const isOpen = () => root.classList.contains("open");
+    const isMobile = () => window.matchMedia("(max-width: 560px)").matches;
+
+    /* =====================================================================
+       CHAT UI
+       ===================================================================== */
+    function scrollDown() { chatBody.scrollTop = chatBody.scrollHeight; }
+    function addMessage(role, html) {
+      const row = document.createElement("div");
+      row.className = "msg " + role;
+      row.innerHTML = (role === "bot" ? `<div class="mini-av">${icon(TH.icon, 15)}</div>` : "") +
+        `<div class="col"><div class="bubble">${html}</div><time>${clockNow()}</time></div>`;
+      chatBody.appendChild(row);
+      scrollDown();
+      if (role === "bot" && !isOpen()) setUnread(unread + 1);
     }
-    if (!list.length) return bot(R.noBooking, ["Book Appointment"]);
-    return bot(R.myBookings + list.map(recordCard).join("") + R.myBookingsNote, chips);
-  }
+    function setChips(list = []) {
+      chipsEl.innerHTML = "";
+      list.forEach((label) => {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "chip"; b.textContent = label;
+        b.onclick = () => sendUser(label);
+        chipsEl.appendChild(b);
+      });
+      scrollDown();
+    }
+    // Cards inside messages are clickable
+    chatBody.addEventListener("click", (ev) => { const el = ev.target.closest("[data-send]"); if (el) sendUser(el.getAttribute("data-send")); });
 
-  /* =====================================================================
-     ROUTER (no booking in progress)
-     ---------------------------------------------------------------------
-     🔌 WHERE THE CLAUDE API GOES (real/production version)
-     This widget uses local intent detection so it works with no API key.
-     For the real version, send free-text questions to Claude — e.g. call
-     it from respond() when nothing matched (the fallback / out-of-scope
-     branches), or replace buildAnswer() entirely:
-
-       const res = await fetch("https://YOUR-BACKEND/api/chat", {
-         method: "POST",
-         headers: { "Content-Type": "application/json" },
-         body: JSON.stringify({ messages: chatHistory })
-       });
-       const { reply } = await res.json();
-       bot(esc(reply));
-
-     The backend (never the browser — the API key must stay secret) calls:
-       POST https://api.anthropic.com/v1/messages
-       headers: x-api-key: process.env.ANTHROPIC_API_KEY,
-                anthropic-version: 2023-06-01, content-type: application/json
-       body: { model: "claude-sonnet-5-5",   // or claude-haiku-4-5 for lower cost
-               max_tokens: 300,
-               system: <built from CONFIG: clinic facts, prices, hours, doctors,
-                        + rules: reply in English, 1–3 sentences, never diagnose
-                        or prescribe, use CONFIG.bot.outOfScope for off-topic>,
-               messages: chatHistory }
-     Keep the booking flow below as-is (deterministic & validated), and send
-     confirmed bookings from submitRequest() to email/WhatsApp/Sheets/CRM.
-     ===================================================================== */
-  function respond(text) {
-    const a = analyze(text), s = a.scores, defaults = CONFIG.bot.quickReplies;
-    if (!a.n) return bot(R.rephrase, defaults);
-    if (a.injection) return bot(esc(CONFIG.bot.outOfScope));                    // prompt injection → one line
-
-    const e = extractEntities(text, null);
-    const core = hasCore(e);
-    const ans = buildAnswer(a, e, false);
-
-    if (a.urgent) return bot(ans.html, ans.chips);                               // emergencies always first
-    if (MY_BOOKING_RE.test(a.n)) return showMyBookings(defaults);
-    if (a.offTopic && !a.onTopic && s.book < 3 && maxAnswerScore(a) < 3) return bot(esc(CONFIG.bot.outOfScope));
-    if (s.reschedule >= 3) return startFlow("reschedule", e);
-    if (ans && ans.info && s.book < 3) return bot(ans.html, ans.chips);          // availability / opening-day questions
-
-    const multi = multiPerson(a.n);
-    const wantsBooking = s.book >= 3 || e.earliest || multi || (s.book >= 1 && (core || !ans)) ||
-      (core && (!a.question || !ans || e.time != null || e.timeError || e.phone));
-    if (wantsBooking) {
-      const reason = reasonFrom(a);
-      if (reason) e.reason = reason;
-      return startFlow("book", e, { multi });
+    // Queue bot replies so they appear one after another with a typing indicator.
+    function bot(html, chips) {
+      const mySession = session;
+      queue = queue.then(() => new Promise((resolve) => {
+        if (mySession !== session || destroyed) return resolve();
+        const t = document.createElement("div");
+        t.className = "msg bot typing";
+        t.innerHTML = `<div class="mini-av">${icon(TH.icon, 15)}</div><div class="col"><div class="bubble"><span></span><span></span><span></span></div></div>`;
+        chatBody.appendChild(t); scrollDown();
+        const plain = html.replace(/<[^>]+>/g, "");
+        const delay = 450 + Math.min(plain.length * 9, 1000) + Math.random() * 250;
+        setTimeout(() => {
+          t.remove();
+          if (mySession === session && !destroyed) { addMessage("bot", html); if (chips) setChips(chips); }
+          resolve();
+        }, delay);
+      }));
+      return queue;
+    }
+    function sendUser(text) {
+      text = String(text).trim();
+      if (!text) return;
+      addMessage("user", esc(text));
+      setChips([]);
+      input.value = "";
+      if (Flow.active) handleFlow(text); else respond(text);
     }
 
-    if (ans) return bot(ans.html, ans.chips);
-    if (s.bye >= 3 || s.thanks >= 3) return bot(fill(intentById[s.bye >= 3 ? "bye" : "thanks"].answer));   // warm goodbye
-    if (s.greeting >= 3) return bot(fill(intentById.greeting.answer), defaults);
-    if (/^(yes|yeah|yep|sure|ok|okay|yes please)$/.test(a.n)) return bot(R.yesIdle, defaults);
-    if (/^(no|nope|nah|no thanks|no thank you)$/.test(a.n)) return bot(R.noIdle);
-    if (a.gibberish) return bot(R.rephrase, defaults);
-    if (a.onTopic) return bot(fill(CONFIG.bot.fallback), defaults);
-    return bot(esc(CONFIG.bot.outOfScope));                                        // one line only — no quick replies
-  }
+    /* =====================================================================
+       ANSWERS — priority: urgent → priority topics (medical…) → fear →
+       staff → availability → specialist → prices → hours → FAQ
+       ===================================================================== */
+    const P = CONFIG.pricing || {};
+    const PRICE_INTENTS = P.intents || {};
+    const SERVICE_IDS = CONFIG.fear ? CONFIG.fear.serviceIntents || [] : [];
+    const URGENT_CHIPS = BOT.urgentChips || ["Book earliest appointment", "Location"];
+    const DO_YOU_RE = /\b(do you (do|offer|provide|have|perform)|can you (do|remove)|how much|price|cost)\b/;
+    const staffWords = ST ? [ST.singular, ...(ST.words || [])].map((w) => w + "s?").join("|") : "";
+    const AVAIL_RE = ST ? new RegExp(`\\b(who|which (?:${staffWords})|what (?:${staffWords})|any (?:${staffWords})|(?:${staffWords}))\\b[^?]*\\b(available|free|working|on duty)\\b|\\bwhos (available|working|in|on)\\b`) : null;
+    const SPECIALIST_Q = ST ? new RegExp(`\\b(which|what|who)\\b[^.]*\\b(${staffWords}|specialist)\\b|\\bwho (does|do|handles|treats|can|should)\\b|\\bwhen\\b`) : null;
+    const QTY = (P.qty || []).map((q) => ({ ...q, re: new RegExp(`\\b${NUM}\\s+(${q.words})\\b`, "g") }));
+    const priceNums = (p) => (p.value.match(/\d[\d,]*/g) || []).map((x) => +x.replace(/,/g, ""));
 
-  /* =====================================================================
-     BOOKING STATE — kept separately, so answering questions never resets it
-     ===================================================================== */
-  const Flow = { active: null, step: null, data: {}, earliest: false, recNoted: false, pending: [], prevPhone: null, asked: new Set(), failField: null, failCount: 0 };
-  const STEPS = { book: ["name", "phone", "date", "reason", "doctor", "time"], reschedule: ["name", "phone", "date", "time"] };
-  const CONFIRM_CHIPS = ["✅ Yes, confirm", "✏️ Edit details", "✖ Cancel"];
-  const EDIT_CHIPS = ["Name", "Phone", "Date", "Doctor", "Time", "Reason"];
-  const ABORT_RE = /^(?:(?:please|ok|okay|actually|oh|no|um|hmm)\s+)*(stop|cancel|cancel (?:it|this|that|booking|the booking|my booking|request|the request|please)|never ?mind|forget (?:it|about it)|start over|exit|quit|i changed my mind|i dont want (?:it|to|this)|no thanks|no thank you)(?:\s+(?:please|thanks|thank you))?$/;
-  const YES_RE = /\b(yes|yeah|yep|yup|sure|confirm|confirmed|ok|okay|correct|go ahead|y|please do)\b/;
-  const NO_RE = /\b(no|nope|nah|cancel|dont|stop)\b/;
-  const EDIT_RE = /\b(edit|change|modify|wrong|fix)\b/;
-  const recDoc = (d) => (d.recId ? DOCTORS.find((x) => x.id === d.recId) : null);
-
-  function nextStep() {
-    const d = Flow.data;
-    if (d.cancelOnly) return "submit";
-    const missing = STEPS[Flow.active].find((k) => d[k] == null);
-    return missing || (Flow.active === "book" ? "confirm" : "submit");
-  }
-
-  function dateChips() {
-    const d0 = Flow.data, out = [], t = today();
-    let d = firstOpenDate();
-    for (let i = 0; i < 40 && out.length < 5; i++, d = addDays(d, 1)) {
-      if (!isOpenDay(d) || (d0.doctor && !worksOn(d0.doctor, d))) continue;          // only the chosen doctor's days
-      if (d0.doctor && sameDay(d, t) && d0.doctor.lastMin < nowMin() + 30) continue;
-      out.push(sameDay(d, t) ? "Today" : sameDay(d, addDays(t, 1)) ? "Tomorrow" : fmtShort(d));
+    function pricesHtml() {
+      const rows = Object.values(CONFIG.prices || {}).map((p) => `<div class="pl-row"><span>${esc(p.label)}</span><span>${esc(p.value)}</span></div>`).join("");
+      return `${fill(T.pricesIntro)}<div class="price-list">${rows}</div>` + (T.pricesNote ? `<div class="pl-note">${fill(T.pricesNote)}</div>` : "");
     }
-    return Flow.active === "reschedule" ? [...out, "Just cancel"] : out;
-  }
-  const PARTS = { morning: [OPEN_MIN, 719], afternoon: [720, 1019], evening: [1020, LAST_MIN] };
-  function timeChips(date, part, doc) {
-    const isToday = date && sameDay(date, today());
-    const okNow = (m) => !isToday || m >= nowMin() + 30;
-    let from = doc ? doc.fromMin : OPEN_MIN, to = doc ? doc.lastMin : LAST_MIN;
-    if (part && PARTS[part]) {
-      const pf = Math.max(from, PARTS[part][0]), pt = Math.min(to, PARTS[part][1]);
-      if (pf <= pt) { from = pf; to = pt; }
-    }
-    let slots = [];
-    const step = to - from > 180 ? 60 : 30;                          // hourly buttons for long shifts
-    for (let m = from; m <= to; m += step) if (okNow(m)) slots.push(m);
-    if (slots.length > 6) { const step = (slots.length - 1) / 5; slots = [0, 1, 2, 3, 4, 5].map((i) => slots[Math.round(i * step)]); }
-    return slots.map(minToLabel);
-  }
-  function chipsFor(step) {
-    const d = Flow.data;
-    if (step === "date") return dateChips();
-    if (step === "time") return timeChips(d.date, d.part, d.doctor);
-    if (step === "reason") return CONFIG.booking.reasons;
-    if (step === "doctor") return ["Any doctor"];
-    if (step === "phone") return Flow.prevPhone ? [`Same number (${Flow.prevPhone})`] : [];
-    if (step === "confirm") return CONFIRM_CHIPS;
-    if (step === "editPick") return EDIT_CHIPS;
-    return [];
-  }
-  function recommendText(doc, date) {
-    const vals = { doctor: doc.name, short: doc.short, specialty: doc.specialty, range: rangeText(doc), days: daysText(doc) };
-    return date && worksOn(doc, date) ? fill(R.recommend, { ...vals, weekday: weekdayPlural(date) }) : fill(R.recommendOther, vals);
-  }
+    function servicesHtml() { return tx("servicesText", { list: joinAnd((CONFIG.services || []).map((s) => s.toLowerCase())) }); }
 
-  function askStep(step, opts = {}) {
-    if (step !== Flow.step) resetFails();          // moved on → the previous input was valid
-    Flow.step = step;
-    const d = Flow.data, book = Flow.active === "book";
-    const short = !!opts.prefix || !!opts.short || Flow.asked.has(step);    // the long wording is used only the first time
-    Flow.asked.add(step);
-    const first = d.name ? esc(firstName(d.name)) : "";
-    let html, chips = chipsFor(step);
-    switch (step) {
-      case "name":
-        html = short ? "May I have your <b>full name</b>?"
-          : book ? "Wonderful, let's get you booked in! 😊 May I have your <b>full name</b>?"
-                 : "Of course, I can help with that. May I have the <b>full name</b> the appointment is under?";
-        break;
-      case "phone":
-        html = short || !first ? "What's the best <b>phone number</b> to reach you on?"
-          : book ? `Thank you, ${first}! What's the best <b>phone number</b> to reach you on?`
-                 : `Thank you, ${first}. And which <b>phone number</b> was the appointment booked with?`;
-        break;
-      case "date":
-        html = short ? (book ? "Which <b>date</b> suits you best?" : "What <b>new date</b> would suit you?")
-          : book ? `Which <b>date</b> suits you best?${d.doctor ? ` ${esc(d.doctor.short)} is available ${daysText(d.doctor)}.` : " We're open Monday to Saturday — you can type something like “tomorrow”, “next Monday” or “Oct 12”."}`
-                 : "What <b>new date</b> would suit you? If you'd simply like to cancel, just tap “Just cancel”.";
-        break;
-      case "reason":
-        html = short ? "What's the main <b>reason for your visit</b>?" : "Almost there! What's the main <b>reason for your visit</b>?";
-        break;
-      case "doctor": {
-        const rec = recDoc(d), docs = availableDoctors(d.date, d.time);
-        if (!docs.length) { html = fill(R.noDoctors, { date: fmtDate(d.date) }); chips = dateChips(); Flow.step = "date"; break; }
-        html = fill(R.availableOn, { date: fmtDate(d.date) }) + docCards(docs, rec, (doc) => doc.name);
-        if (rec && !docs.includes(rec)) {
-          const next = nextDateFor(rec, d.date);
-          if (next) {
-            html += `${esc(rec.name)} (${esc(rec.specialty)}) isn't in that day — ${esc(rec.short)}'s next available day is <b>${relDate(next)}</b>.`;
-            chips = [...chips, `${fmtShort(next)} with ${rec.short}`];
+    // "cleaning and whitening together" → each price + the total
+    function multiPriceHtml(ids) {
+      let min = 0, max = 0, from = false, priced = 0;
+      const parts = ids.map((id) => {
+        const p = CONFIG.prices[PRICE_INTENTS[id]];
+        const isFrom = /\(from\)/i.test(p.label);
+        const label = p.label.replace(/\s*\(from\)\s*/i, "").toLowerCase();
+        const nums = priceNums(p);
+        if (!nums.length) return `${label} ${/&|s$/.test(label) ? "are" : "is"} priced ${p.value.toLowerCase()}`;
+        priced++; min += nums[0]; max += nums[nums.length - 1]; if (isFrom) from = true;
+        return isFrom ? `a ${label} starts from ${p.value}` : `${label} is ${p.value}`;
+      });
+      let html = cap(joinAnd(parts)) + ".";
+      if (priced >= 2) html += fill(T.together, { total: from ? "from " + money(min) : min === max ? money(min) : money(min) + "–" + money(max) });
+      return html;
+    }
+    // "How much for 3 fillings?" → $360 · "2 butter chicken and 3 naan" → itemised total
+    function quantityHtml(n) {
+      const found = [];
+      QTY.forEach((q) => {                          // config order = most specific first ("garlic naan" before "naan")
+        q.re.lastIndex = 0; let m;
+        while ((m = q.re.exec(n))) {
+          const at = m.index, end = at + m[0].length;
+          if (!found.some((f) => at < f.end && end > f.at)) found.push({ q, qty: toNum(m[1]), word: m[2], at, end });
+        }
+      });
+      if (!found.length) return null;
+      found.sort((x, y) => x.at - y.at);
+      const lines = [];
+      let lo = 0, hi = 0, from = false;
+      for (const f of found) {
+        const p = CONFIG.prices[f.q.key];
+        const nums = p ? priceNums(p) : [];
+        if (!nums.length || !f.qty) continue;
+        const isFrom = /\(from\)/i.test(p.label);
+        const l = nums[0] * f.qty, h = nums[nums.length - 1] * f.qty;
+        lo += l; hi += h; if (isFrom) from = true;
+        const total = isFrom ? "from " + money(l) : l === h ? money(l) : money(l) + "–" + money(h);
+        const each = /per /.test(p.value) ? p.value : p.value + " each";
+        lines.push({ qty: f.qty, item: f.q.name || f.word, total, each });
+      }
+      if (!lines.length || (lines.length === 1 && lines[0].qty < 2)) return null;
+      if (lines.length === 1) return tx("qtyLine", lines[0]);
+      const sum = from ? "from " + money(lo) : lo === hi ? money(lo) : money(lo) + "–" + money(hi);
+      return lines.map((x) => `${x.qty} × ${esc(x.item)} (${x.each}) = ${x.total}`).join("<br>") + `<br>Total: <b>${sum}</b>.`;
+    }
+
+    function urgentHtml(a) {
+      const med = CONFIG.urgentMedicineIntent && sc(a, CONFIG.urgentMedicineIntent) >= 3;
+      return tx("urgent") + (med ? " " + T.urgentNoMedicine : "") + " " + T.urgentOffer;
+    }
+    function fearHtml(a) {
+      const t = a.treatment;
+      if (!t) return tx("fearGeneral");
+      return fill(t.numb ? T.fearNumb : T.fearGentle, { treatment: t.name });
+    }
+    function openOnHtml(e) {
+      if (e.dateError === "closed") return tx("closedOn", { weekday: weekdayPlural(e.dateRaw) });
+      if (e.date) return tx("openOn", { date: fmtDate(e.date), ...hoursTokens(e.date) });
+      return null;
+    }
+    function answerHtml(id) {
+      const it = intentById[id];
+      if (it.action === "prices") return pricesHtml();
+      if (it.action === "services") return servicesHtml();
+      return fill(typeof it.answer === "function" ? it.answer() : it.answer);
+    }
+    function availabilityAnswer(e, inFlow) {
+      if (e.dateError) return { html: errorText({ field: "date", code: e.dateError, date: e.dateRaw }), chips: [], info: true };
+      let date = e.date || today();
+      if (!e.date && availableStaff(date).length === 0) date = firstOpenDate();
+      const list = availableStaff(date, null);
+      if (!list.length) return { html: tx("noStaff", { date: fmtDate(date) }), chips: [], info: true };
+      const send = (s) => (inFlow ? `${s.name} on ${fmtShort(date)}` : `Book with ${s.name} on ${fmtShort(date)}`);
+      return { html: tx("availableOn", { date: fmtDate(date) }) + staffCards(list, null, send), chips: [], info: true };
+    }
+    function staffAvailabilityAnswer(s, e) {
+      if (e.dateError) return { html: errorText({ field: "date", code: e.dateError, date: e.dateRaw }), chips: [], info: true };
+      const vals = staffVals(s);
+      if (!e.date) {
+        const next = nextDateFor(s);
+        return { html: tx("staffGeneral", { ...vals, next: next ? relDate(next) : "—" }), chips: next ? [`Book with ${s.short} on ${fmtShort(next)}`] : [], info: true };
+      }
+      if (worksOn(s, e.date)) return { html: tx("staffYes", { ...vals, date: fmtDate(e.date) }), chips: [`Book with ${s.short} on ${fmtShort(e.date)}`], info: true };
+      const next = nextDateFor(s, e.date);
+      return { html: tx("staffNo", { ...vals, weekday: weekdayPlural(e.date), next: next ? relDate(next) : "—" }), chips: next ? [`Book with ${s.short} on ${fmtShort(next)}`] : [], info: true };
+    }
+    function specialistAnswer(spec) {
+      const s = spec.doc, next = nextDateFor(s);
+      return { html: tx("specialist", { ...staffVals(s), service: (ST.serviceLabels || {})[spec.id] || "this", next: next ? relDate(next) : "—" }), chips: [`Book with ${s.short}`] };
+    }
+
+    function buildAnswer(a, e, inFlow) {
+      const s = a.scores, n = a.n;
+      if (a.urgent) return { html: urgentHtml(a), chips: URGENT_CHIPS };
+      for (const it of PRIORITY) if (s[it.id] >= 3) return { html: answerHtml(it.id), chips: it.chips || [] };
+      if (a.fear) {
+        const svc = SERVICE_IDS.filter((id) => (s[id] || 0) >= 3);
+        const lead = svc.length && DO_YOU_RE.test(n) ? answerHtml(svc[0]) + "<br><br>" : "";   // "do you do X and does it hurt?"
+        return { html: lead + fearHtml(a), chips: CONFIG.fear.chips || [] };
+      }
+      // A question about one specific option (a property, class or service) → that option's details
+      // (unless it's really about the staff: "which trainer is best for boxing?")
+      const opt = Object.values(e.fields || {}).find((v) => v && typeof v === "object" && v.info);
+      if (opt && a.question && !(ST && ((s[ST.intent] || 0) >= 3 || (/\bwho\b/.test(n) && specialistFor(s))))) {
+        const others = INTENTS.filter((i) => !NON_ANSWER.has(i.id) && !(BOT.optionIntents || []).includes(i.id) && s[i.id] >= 3);
+        if (!others.length) return { html: fill(opt.info), chips: opt.chips || [BOT.quickReplies[0]] };
+      }
+      if (ST) {
+        const staffScore = s[ST.intent] || 0;
+        if (staffScore >= 3 && FEE_RE.test(n) && T.staffFees) return { html: tx("staffFees"), chips: ST.feeChips || [] };
+        const spec = specialistFor(s);
+        const specQ = spec && spec.id !== "pain" && SPECIALIST_Q.test(n);
+        if (staffScore >= 3 && a.compare && !(specQ && !e.staff)) return { html: tx("compareStaff"), chips: [BOT.quickReplies[0]] };   // "who's best for boxing?" → the specialist
+        if (e.staff && a.question && (e.date || e.dateError || AVAIL_WORDS_RE.test(n))) return staffAvailabilityAnswer(e.staff, e);
+        if (AVAIL_RE.test(n)) return availabilityAnswer(e, inFlow);
+        if (specQ) return specialistAnswer(spec);
+      }
+      const qty = quantityHtml(n);
+      if (qty) return { html: qty, chips: P.qtyChips || [BOT.quickReplies[0], "Payment options"] };
+      if (CONFIG.fear && (s.duration || 0) >= 3 && a.treatment && !((s.consultation || 0) >= 3)) return { html: tx("durationOther"), chips: [BOT.quickReplies[0]] };
+
+      const priced = Object.keys(PRICE_INTENTS).filter((id) => (s[id] || 0) >= 3);
+      if (priced.length >= 2) return { html: multiPriceHtml(priced), chips: P.multiChips || [BOT.quickReplies[0], "Payment options"] };
+
+      if (((s.timings || 0) >= 1 || (s.weekends || 0) >= 1) && a.question) {
+        const h = openOnHtml(e);
+        if (h) return { html: h, chips: [BOT.quickReplies[0], "Location"], info: true };
+      }
+
+      const candidates = INTENTS.filter((i) => !NON_ANSWER.has(i.id));
+      let ids = candidates.filter((i) => s[i.id] >= 3).sort((x, y) => s[y.id] - s[x.id]).map((i) => i.id);
+      if (!ids.length) {
+        const top = candidates.slice().sort((x, y) => s[y.id] - s[x.id])[0];
+        const need = inFlow ? (a.question ? 2 : Infinity) : 1;
+        if (top && s[top.id] >= need) ids = [top.id];
+      }
+      if (!ids.length) return null;
+      // Avoid overlapping answers to the same question
+      if (ids.length > 1) ids = ids.filter((id) => !["prices", "services"].includes(intentById[id].action) && id !== (ST && ST.intent));
+      if (ids.includes("weekends")) ids = ids.filter((id) => id !== "timings");
+      if (ids.includes("pain")) ids = ids.filter((id) => id !== "emergency");
+      (BOT.overlaps || []).forEach(([keep, drop]) => { if (ids.includes(keep)) ids = ids.filter((id) => id !== drop); });
+      if (!ids.length) return null;
+      ids = ids.slice(0, 3);
+      return { html: ids.map(answerHtml).join("<br><br>"), chips: intentById[ids[0]].chips || BOT.quickReplies };
+    }
+
+    /* ---------- "What did I book?" ---------- */
+    function recordCard(rec) {
+      const rows = rec.rows || [["Name", rec.name], ["Phone", rec.phone], ["Date", rec.date ? fmtDate(fromISO(rec.date)) : ""], ["Time", rec.time], ["Doctor", rec.doctor], ["Reason", rec.reason]];
+      return `<div class="summary"><div class="summary-head">${icon("calendar", 14)} ${esc(fill(T.summaryTitle))}</div>` +
+        rows.filter(([, v]) => v).map(([k, v]) => `<div class="summary-row"><span>${esc(k)}</span><span>${esc(v)}</span></div>`).join("") + `</div>`;
+    }
+    function showMyBookings(chips) {
+      let list = SESSION.bookings.slice(-3);
+      if (!list.length) {
+        try { const last = (JSON.parse(localStorage.getItem(STORE_KEY)) || []).find((r) => r.type === "new"); if (last) list = [last]; } catch (err) { /* ignore */ }
+      }
+      if (!list.length) return bot(tx("noBooking"), [BOT.quickReplies[0]]);
+      return bot(tx("myBookings") + list.map(recordCard).join("") + tx("myBookingsNote"), chips);
+    }
+
+    /* =====================================================================
+       ROUTER (no booking in progress)
+       ---------------------------------------------------------------------
+       🔌 WHERE THE CLAUDE API GOES (real/production version)
+       This widget uses local intent detection so it works with no API key.
+       For the real version, send free-text questions to Claude — e.g. call
+       it from respond() when nothing matched (the fallback / out-of-scope
+       branches), or replace buildAnswer() entirely:
+
+         const res = await fetch("https://YOUR-BACKEND/api/chat", {
+           method: "POST",
+           headers: { "Content-Type": "application/json" },
+           body: JSON.stringify({ messages: chatHistory })
+         });
+         const { reply } = await res.json();
+         bot(esc(reply));
+
+       The backend (never the browser — the API key must stay secret) calls:
+         POST https://api.anthropic.com/v1/messages
+         headers: x-api-key: process.env.ANTHROPIC_API_KEY,
+                  anthropic-version: 2023-06-01, content-type: application/json
+         body: { model: "claude-sonnet-5-5",   // or claude-haiku-4-5 for lower cost
+                 max_tokens: 300,
+                 system: <built from CONFIG: business facts, prices, hours, staff,
+                          + rules: reply in English, 1–3 sentences, stay on topic,
+                          use the out-of-scope line for anything else>,
+                 messages: chatHistory }
+       Keep the booking flow below as-is (deterministic & validated), and send
+       confirmed bookings from submitRequest() to email/WhatsApp/Sheets/CRM.
+       ===================================================================== */
+    const outOfScope = () => bot(esc(T.outOfScope.replace("{business}", B.name)));    // one line only — no quick replies
+    function respond(text) {
+      const a = analyze(text), s = a.scores, defaults = BOT.quickReplies;
+      if (!a.n) return bot(tx("rephrase"), defaults);
+      if (a.injection) return outOfScope();                                      // prompt injection → one line
+
+      const e = extractEntities(text, null);
+      const core = hasCore(e);
+      const ans = buildAnswer(a, e, false);
+
+      if (a.urgent) return bot(ans.html, ans.chips);                             // emergencies always first
+      if (MY_BOOKING_RE.test(a.n)) return showMyBookings(defaults);
+      if (a.offTopic && !a.onTopic && maxAnswerScore(a) < 3 && !hasFields(e)) return outOfScope();
+      if ((s.reschedule || 0) >= 3) return startFlow("reschedule", e);
+      if (ans && ans.info && (s.book || 0) < 3) return bot(ans.html, ans.chips);   // availability / opening-day questions
+
+      const multi = multiPerson(a.n);
+      const coreNoFields = !!(e.name || e.phone || e.date || e.dateError || e.time != null || e.timeError || e.staff || e.anyStaff || e.earliest);
+      const wantsBooking = (s.book || 0) >= 3 || e.earliest || multi || ((s.book || 0) >= 1 && (core || !ans)) ||
+        (coreNoFields && (!a.question || !ans || e.time != null || e.timeError || e.phone)) ||
+        (hasFields(e) && !ans);                                                     // "Facial" alone → info, "a facial tomorrow" → booking
+      if (wantsBooking) {
+        Object.entries(textFieldFrom(a)).forEach(([id, v]) => { if (e.fields[id] == null) e.fields[id] = v; });
+        if (multi && BK.multiPerson === false) {                                   // restaurant: "me and my wife" = 2 guests
+          const nf = Object.keys(FIELDS).find((id) => FIELDS[id].type === "number");
+          if (nf && e.fields[nf] == null) e.fields[nf] = 2;
+        }
+        return startFlow("book", e, { multi: BK.multiPerson === false ? null : multi });
+      }
+
+      if (ans) return bot(ans.html, ans.chips);
+      if ((s.bye || 0) >= 3 || (s.thanks || 0) >= 3) return bot(answerHtml((s.bye || 0) >= 3 ? "bye" : "thanks"));   // warm goodbye
+      if ((s.greeting || 0) >= 3) return bot(answerHtml("greeting"), defaults);
+      if (/^(yes|yeah|yep|sure|ok|okay|yes please)$/.test(a.n)) return bot(tx("yesIdle"), defaults);
+      if (/^(no|nope|nah|no thanks|no thank you)$/.test(a.n)) return bot(tx("noIdle"));
+      if (a.offTopic) return outOfScope();
+      if (a.gibberish) return bot(tx("rephrase"), defaults);
+      if (a.onTopic) return bot(tx("fallback"), defaults);
+      return outOfScope();
+    }
+
+    /* =====================================================================
+       BOOKING STATE — kept separately, so answering questions never resets it
+       ===================================================================== */
+    const Flow = { active: null, step: null, data: {}, earliest: false, recNoted: false, pending: [], prevPhone: null, asked: new Set(), failField: null, failCount: 0 };
+    const CONFIRM_CHIPS = ["✅ Yes, confirm", "✏️ Edit details", "✖ Cancel"];
+    const SUMMARY = BK.summary || ["name", "phone", "date", "time", ...(ST ? ["staff"] : []), ...Object.keys(FIELDS)];
+    const labelOf = (k) => (k === "name" ? "Name" : k === "phone" ? "Phone" : k === "date" ? "Date" : k === "time" ? "Time" : k === "staff" ? ST.label : FIELDS[k].label);
+    const EDIT_CHIPS = BK.editChips || SUMMARY.filter((k) => k !== "staff" || BOOK_STEPS.includes("staff")).map(labelOf);
+    const recStaff = (d) => (d.recId ? STAFF_LIST.find((x) => x.id === d.recId) : null);
+    const stepsOf = () => (Flow.active === "book" ? BOOK_STEPS : RESCHED_STEPS);
+    const chosenOption = (d) => { for (const id of Object.keys(FIELDS)) { const v = d[id]; if (v && typeof v === "object" && (v.days || v.times)) return v; } return null; };
+    const fieldValueText = (id, v) => (v == null ? "" : typeof v === "object" ? v.label : FIELDS[id] && FIELDS[id].display ? FIELDS[id].display.replace("{value}", v) : String(v));
+
+    function nextStep() {
+      const d = Flow.data;
+      if (d.cancelOnly) return "submit";
+      const missing = stepsOf().find((k) => d[k] == null);
+      return missing || (Flow.active === "book" ? "confirm" : "submit");
+    }
+    function dateChips() {
+      const d0 = Flow.data, out = [], t = today(), opt = chosenOption(d0);
+      let d = firstOpenDate();
+      for (let i = 0; i < 40 && out.length < 5; i++, d = addDays(d, 1)) {
+        if (!isOpenDay(d) || (d0.staff && !worksOn(d0.staff, d)) || (opt && opt.days && !opt.days.includes(d.getDay()))) continue;
+        if (d0.staff && sameDay(d, t) && staffLast(d0.staff, d) < nowMin() + 30) continue;
+        out.push(sameDay(d, t) ? "Today" : sameDay(d, addDays(t, 1)) ? "Tomorrow" : fmtShort(d));
+      }
+      return Flow.active === "reschedule" ? [...out, T.justCancel] : out;
+    }
+    const PARTS = { morning: [0, 719], afternoon: [720, 1019], evening: [1020, 1439] };
+    function timeChips(date, part, staff) {
+      const isToday = date && sameDay(date, today());
+      const okNow = (m) => !isToday || m >= nowMin() + 30;
+      const opt = chosenOption(Flow.data);
+      if (opt && opt.times) return opt.times.map(hmToMin).filter(okNow).map(minToLabel);
+      const x = date && dayInfo(date);
+      let from = staff ? staff.fromMin : x ? x.open : OPEN_MIN, to = staff ? staffLast(staff, date) : x ? x.last : LAST_MIN;
+      if (part && PARTS[part]) {
+        const pf = Math.max(from, PARTS[part][0]), pt = Math.min(to, PARTS[part][1]);
+        if (pf <= pt) { from = pf; to = pt; }
+      }
+      if (!staff && !part && !x && BK.timeSlots) return BK.timeSlots.slice();
+      let slots = [];
+      const step = to - from > 180 ? 60 : 30;                          // hourly buttons for long shifts
+      for (let m = from; m <= to; m += step) if (okNow(m)) slots.push(m);
+      if (slots.length > 6) { const st = (slots.length - 1) / 5; slots = [0, 1, 2, 3, 4, 5].map((i) => slots[Math.round(i * st)]); }
+      return slots.map(minToLabel);
+    }
+    function chipsFor(step) {
+      const d = Flow.data;
+      if (step === "date") return dateChips();
+      if (step === "time") return timeChips(d.date, d.part, d.staff);
+      if (step === "staff") return [fill("{anyStaff}")];
+      if (step === "phone") return Flow.prevPhone ? [`Same number (${Flow.prevPhone})`] : [];
+      if (step === "confirm") return CONFIRM_CHIPS;
+      if (step === "editPick") return EDIT_CHIPS;
+      const f = FIELDS[step];
+      if (f) return f.chips || (f.options || []).map((o) => o.label);
+      return [];
+    }
+    function recommendText(s, date) {
+      return date && worksOn(s, date) ? tx("recommend", { ...staffVals(s), weekday: weekdayPlural(date) }) : tx("recommendOther", staffVals(s));
+    }
+
+    function askStep(step, o = {}) {
+      if (step !== Flow.step) resetFails();          // moved on → the previous input was valid
+      Flow.step = step;
+      const d = Flow.data, book = Flow.active === "book";
+      const short = !!o.prefix || !!o.short || Flow.asked.has(step);    // the long wording is used only the first time
+      Flow.asked.add(step);
+      const first = d.name ? esc(firstName(d.name)) : "";
+      let html, chips = chipsFor(step);
+      switch (step) {
+        case "name":
+          html = short ? tx("askNameShort") : book ? tx("askName") : tx("askNameResched");
+          break;
+        case "phone":
+          html = short || !first ? tx("askPhoneShort") : book ? tx("askPhone", { first }) : tx("askPhoneResched", { first });
+          break;
+        case "date":
+          html = short ? (book ? tx("askDateShort") : tx("askDateReschedShort"))
+            : book ? (d.staff && ST ? tx("askDateStaff", { staff: esc(d.staff.name), short: esc(d.staff.short), days: daysText(d.staff) }) : tx("askDate"))
+                   : tx("askDateResched");
+          break;
+        case "staff": {
+          const rec = recStaff(d), list = availableStaff(d.date, d.time);
+          if (!list.length) { html = tx("noStaff", { date: fmtDate(d.date) }); chips = dateChips(); Flow.step = "date"; break; }
+          html = tx("availableOn", { date: fmtDate(d.date) }) + staffCards(list, rec, (s) => s.name);
+          if (rec && !list.includes(rec)) {
+            const next = nextDateFor(rec, d.date);
+            if (next) { html += tx("staffNotIn", { ...staffVals(rec), next: fmtDate(next) }); chips = [...chips, `${fmtShort(next)} with ${rec.short}`]; }
+          }
+          break;
+        }
+        case "time": {
+          const opt = chosenOption(d);
+          html = opt && opt.times ? tx("askTimeOption", { option: esc(opt.label), times: joinAnd(opt.times.map((t) => minToShort(hmToMin(t)))) })
+            : d.part ? tx("askTimePart", { part: d.part })
+            : d.staff && ST ? tx("askTimeStaff", { short: esc(d.staff.short), range: rangeText(d.staff), dateShort: fmtShort(d.date) })
+            : short || !d.date ? tx("askTimeShort", { onDate: d.date ? " on " + fmtDate(d.date) : "" })
+            : tx("askTime", { date: fmtDate(d.date), ...hoursTokens(d.date) });
+          break;
+        }
+        case "confirm":
+          html = summaryCard(d) + tx("confirmQ");
+          break;
+        default: {
+          const f = FIELDS[step];
+          html = fill(short && f.shortPrompt ? f.shortPrompt : f.prompt);
+        }
+      }
+      bot((o.prefix || "") + (o.html || html), chips);
+    }
+    const continuePrompt = () => askStep(Flow.step, { prefix: tx(Flow.active === "book" ? "continueBooking" : "continueRequest") + " " });
+
+    function summaryCard(d) {
+      const row = (k, v) => `<div class="summary-row"><span>${esc(k)}</span><span>${esc(v)}</span></div>`;
+      return `<div class="summary"><div class="summary-head">${icon("calendar", 14)} ${esc(fill(T.summaryTitle))}</div>` +
+        SUMMARY.map((k) => {
+          if (k === "date") return row("Date", fmtDate(d.date));
+          if (k === "time") return row("Time", timeLabel(d.time));
+          if (k === "staff") return row(ST.label, d.staff ? `${d.staff.name} (${d.staff.specialty})` : T.anyAvailable);
+          if (k === "name" || k === "phone") return row(labelOf(k), d[k]);
+          return d[k] == null ? "" : row(labelOf(k), fieldValueText(k, d[k]));
+        }).join("") + `</div>`;
+    }
+    function summaryRows(d) {
+      return SUMMARY.map((k) => {
+        if (k === "date") return ["Date", d.date ? fmtDate(d.date) : ""];
+        if (k === "time") return ["Time", d.time != null ? timeLabel(d.time) : ""];
+        if (k === "staff") return [ST.label, d.staff ? `${d.staff.name} (${d.staff.specialty})` : ""];
+        if (k === "name" || k === "phone") return [labelOf(k), d[k] || ""];
+        return [labelOf(k), fieldValueText(k, d[k])];
+      });
+    }
+
+    function endFlow() {
+      Object.assign(Flow, { active: null, step: null, data: {}, earliest: false, recNoted: false, pending: [], prevPhone: null, asked: new Set() });
+      resetFails();
+    }
+    function startFlow(type, e = {}, o = {}) {
+      endFlow();
+      Flow.active = type;
+      if (o.multi) Flow.pending = [o.multi];
+      if (!hasData(e)) return askStep(stepsOf()[0], o.multi ? { prefix: tx("multiIntro") } : {});
+      return advance(applyEntities(e), { intro: true });
+    }
+    function pickAnyStaff(d) {
+      const list = availableStaff(d.date, d.time), rec = recStaff(d);
+      return rec && list.includes(rec) ? rec : list[0] || null;
+    }
+
+    // Stores extracted data. Returns which fields were added, changed, or invalid.
+    function applyEntities(e) {
+      const d = Flow.data, book = Flow.active === "book", r = { added: [], changed: [], errors: [] };
+      const same = (x, y) => (x instanceof Date && y instanceof Date ? x.getTime() === y.getTime() : x === y);
+      const set = (k, v) => { if (d[k] == null) r.added.push(k); else if (!same(d[k], v)) r.changed.push(k); d[k] = v; };
+      const unset = (k) => { d[k] = null; r.added = r.added.filter((x) => x !== k); r.changed = r.changed.filter((x) => x !== k); };
+      const staffStep = BOOK_STEPS.includes("staff");
+
+      // "earliest possible slot" → nearest day, time (and staff member)
+      if (e.earliest && !e.date && !e.dateError) {
+        const slot = earliestSlot(book && ST && staffStep ? e.staff || d.staff || recStaff(d) : null);
+        if (slot) {
+          e.date = slot.date;
+          if (e.time == null && d.time == null) e.time = slot.time;
+          if (book && slot.staff && staffStep && !e.staff && !d.staff) e.staff = slot.staff;
+          Flow.earliest = true;
+        }
+      }
+      if (e.name) set("name", e.name);
+      if (e.phone) set("phone", e.phone);
+      if (e.dateError) r.errors.push({ field: "date", code: e.dateError, date: e.dateRaw });
+      else if (e.date) set("date", e.date);
+
+      // Custom fields (reason, guests, property, service, class…)
+      if (book) {
+        for (const [id, v] of Object.entries(e.fields || {})) {
+          const f = FIELDS[id];
+          if (!f || !BOOK_STEPS.includes(id)) continue;
+          if (f.type === "text") {
+            if (d[id] == null) set(id, v);
+            if (f.recommend && !d.recId) { const sp = specialistFor(analyze(v).scores); if (sp) d.recId = sp.doc.id; }
+          } else if (f.type === "number") {
+            if (v < (f.min || 1)) r.errors.push({ field: id, code: "tooSmall" });
+            else if (f.max && v > f.max) r.errors.push({ field: id, code: "tooBig" });
+            else set(id, v);
+          } else if (f.type === "choice") {
+            set(id, v);
+            if (ST && v.staff) {                                         // e.g. a property's listing agent
+              const s = STAFF_LIST.find((x) => x.id === v.staff);
+              if (s && !staffStep) d.staff = s;
+            }
+            if (ST && staffStep && !d.recId) { const s = STAFF_LIST.find((x) => (x.treats || []).includes(v.id)); if (s) d.recId = s.id; }
           }
         }
-        break;
       }
-      case "time":
-        html = d.part ? `What <b>time</b> in the ${d.part} works best for you?`
-          : d.doctor ? `What <b>time</b> works best for you? ${esc(d.doctor.short)} is available ${rangeText(d.doctor)} on ${fmtShort(d.date)}.`
-          : short || !d.date ? `What <b>time</b> works best for you${d.date ? " on " + fmtDate(d.date) : ""}?`
-          : `Lovely. What <b>time</b> works best for you on ${fmtDate(d.date)}? We're open from ${minToLabel(OPEN_MIN)} to ${minToLabel(CLOSE_MIN)}.`;
-        break;
-      case "confirm":
-        html = summaryCard(d) + "Shall I confirm this appointment?";
-        break;
-    }
-    bot((opts.prefix || "") + (opts.html || html), chips);
-  }
-  const continuePrompt = () =>
-    askStep(Flow.step, { prefix: (Flow.active === "book" ? R.continueBooking : R.continueRequest) + " " });
+      if (e.part && e.time == null) d.part = e.part;
 
-  function summaryCard(d) {
-    const row = (k, v) => `<div class="summary-row"><span>${k}</span><span>${esc(v)}</span></div>`;
-    return `<div class="summary"><div class="summary-head">${icon("calendar", 14)} Appointment summary</div>` +
-      row("Name", d.name) + row("Phone", d.phone) + row("Date", fmtDate(d.date)) + row("Time", timeLabel(d.time)) +
-      row("Doctor", d.doctor ? `${d.doctor.name} (${d.doctor.specialty})` : "Any available") + row("Reason", d.reason) + `</div>`;
-  }
-
-  function endFlow() {
-    Object.assign(Flow, { active: null, step: null, data: {}, earliest: false, recNoted: false, pending: [], prevPhone: null, asked: new Set() });
-    resetFails();
-  }
-
-  function startFlow(type, e = {}, opts = {}) {
-    endFlow();
-    Flow.active = type;
-    if (opts.multi) Flow.pending = [opts.multi];
-    if (!hasData(e) && !e.reason) return askStep(STEPS[type][0], opts.multi ? { prefix: R.multiIntro } : {});
-    return advance(applyEntities(e), { intro: true });
-  }
-
-  function pickAnyDoctor(d) {
-    const docs = availableDoctors(d.date, d.time), rec = recDoc(d);
-    return rec && docs.includes(rec) ? rec : docs[0] || null;
-  }
-
-  // Stores extracted data. Returns which fields were added, changed, or invalid.
-  function applyEntities(e) {
-    const d = Flow.data, book = Flow.active === "book", r = { added: [], changed: [], errors: [] };
-    const same = (x, y) => (x instanceof Date && y instanceof Date ? x.getTime() === y.getTime() : x === y);
-    const set = (k, v) => { if (d[k] == null) r.added.push(k); else if (!same(d[k], v)) r.changed.push(k); d[k] = v; };
-
-    // "earliest possible slot" → nearest day, time and doctor
-    if (e.earliest && !e.date && !e.dateError) {
-      const slot = earliestSlot(book ? e.doctor || d.doctor || recDoc(d) : null);
-      if (slot) {
-        e.date = slot.date;
-        if (e.time == null && d.time == null) e.time = slot.time;
-        if (book && !e.doctor && !d.doctor) e.doctor = slot.doctor;
-        Flow.earliest = true;
+      // Staff: must work on the chosen date
+      if (book && ST) {
+        if (staffStep) {
+          if (e.staff) {
+            if (d.date && !worksOn(e.staff, d.date)) r.errors.push({ field: "staff", code: "unavailable", staff: e.staff });
+            else set("staff", e.staff);
+          } else if (e.anyStaff && !d.staff) {
+            if (d.date) { const pick = pickAnyStaff(d); if (pick) set("staff", pick); } else d.anyStaff = true;
+          }
+          if (!d.staff && d.anyStaff && d.date) { const pick = pickAnyStaff(d); if (pick) set("staff", pick); }
+          if (e.date && d.staff && !worksOn(d.staff, d.date) && !r.errors.some((x) => x.field === "staff")) {
+            r.errors.push({ field: "staff", code: "unavailable", staff: d.staff });
+            d.staff = null;
+          }
+        } else if (d.staff && d.date && !worksOn(d.staff, d.date) && (e.date || hasFields(e))) {
+          r.errors.push({ field: "date", code: "staffOnly", staff: d.staff, date: d.date });   // e.g. listing agent is off that day
+          unset("date");
+        }
       }
-    }
-    if (e.name) set("name", e.name);
-    if (e.phone) set("phone", e.phone);
-    if (e.dateError) r.errors.push({ field: "date", code: e.dateError });
-    else if (e.date) set("date", e.date);
-    if (e.reason && book) {
-      if (d.reason == null) set("reason", e.reason);
-      if (!d.recId) { const sp = specialistFor(analyze(e.reason).scores); if (sp) d.recId = sp.doc.id; }
-    }
-    if (e.part && e.time == null) d.part = e.part;
-
-    // Doctor: must work on the chosen date
-    if (book) {
-      if (e.doctor) {
-        if (d.date && !worksOn(e.doctor, d.date)) r.errors.push({ field: "doctor", code: "unavailable", doctor: e.doctor });
-        else set("doctor", e.doctor);
-      } else if (e.anyDoctor && !d.doctor) {
-        if (d.date) { const pick = pickAnyDoctor(d); if (pick) set("doctor", pick); } else d.anyDoctor = true;
+      // Class/option days (e.g. Yoga runs Mon/Wed/Fri)
+      const opt = chosenOption(d);
+      if (book && opt && opt.days && d.date && !opt.days.includes(d.date.getDay())) {
+        r.errors.push({ field: "date", code: "optionDay", opt, date: d.date });
+        unset("date");
       }
-      if (!d.doctor && d.anyDoctor && d.date) { const pick = pickAnyDoctor(d); if (pick) set("doctor", pick); }
-      if (e.date && d.doctor && !worksOn(d.doctor, d.date) && !r.errors.some((x) => x.field === "doctor")) {
-        r.errors.push({ field: "doctor", code: "unavailable", doctor: d.doctor });
-        d.doctor = null;
+
+      // Time: day hours, staff hours, option times, and not in the past
+      const timeCheck = (min) => {
+        if (opt && opt.times && !opt.times.map(hmToMin).includes(min)) return "optionTime";
+        return timeIssue(min, d.date, ST ? d.staff : null);
+      };
+      if (e.timeError) r.errors.push({ field: "time", code: e.timeError });
+      else if (e.time != null) {
+        const issue = timeCheck(e.time);
+        if (issue) r.errors.push({ field: "time", code: issue, min: e.time, opt });
+        else { set("time", e.time); d.part = null; }
+      } else if ((e.date || e.staff || e.anyStaff || hasFields(e)) && d.time != null) {
+        const issue = timeCheck(d.time);                       // a new date/staff/option can make the earlier time invalid
+        if (issue) { r.errors.push({ field: "time", code: issue === "staffHours" ? "staffClash" : issue, min: d.time, opt }); d.time = null; }
       }
+      return r;
     }
 
-    // Time: clinic hours, the doctor's hours, and not in the past
-    if (e.timeError) r.errors.push({ field: "time", code: e.timeError });
-    else if (e.time != null) {
-      const issue = timeIssue(e.time, d.date, d.doctor);
-      if (issue) r.errors.push({ field: "time", code: issue, min: e.time });
-      else { set("time", e.time); d.part = null; }
-    } else if ((e.date || e.doctor || e.anyDoctor) && d.time != null) {
-      const issue = timeIssue(d.time, d.date, d.doctor);   // a new date/doctor can make the earlier time invalid
-      if (issue) { r.errors.push({ field: "time", code: issue === "doctorHours" ? "doctorClash" : issue, min: d.time }); d.time = null; }
+    function errorText(err) {
+      const d = Flow.data;
+      if (err.field === "staff") {
+        const s = err.staff, next = nextDateFor(s, d.date);
+        err.chips = next ? [`${fmtShort(next)} with ${s.short}`] : [];
+        return tx("staffUnavailable", { ...staffVals(s), staff: `<b>${esc(s.name)}</b>`, weekday: weekdayPlural(d.date), next: next ? relDate(next) : "—", date: fmtDate(d.date) }) +
+          staffCards(availableStaff(d.date, null), null, (x) => x.name);
+      }
+      if (err.code === "staffOnly") {
+        const s = err.staff, next = nextDateFor(s, err.date);
+        err.chips = next ? [fmtShort(next)] : [];
+        return tx("staffUnavailableOnly", { ...staffVals(s), staff: `<b>${esc(s.name)}</b>`, weekday: weekdayPlural(err.date), next: next ? relDate(next) : "—" });
+      }
+      if (err.code === "optionDay") {
+        const o = err.opt;
+        let next = null;
+        for (let i = 0, x = today(); i < 21; i++, x = addDays(x, 1)) if (o.days.includes(x.getDay()) && !dateIssue(x)) { next = x; break; }
+        err.chips = next ? [fmtShort(next)] : [];
+        return tx("optionDay", { option: esc(o.label), days: joinAnd(o.days.map((i) => DAY_SHORT[i])), next: next ? relDate(next) : "—" });
+      }
+      if (err.code === "optionTime") {
+        const o = err.opt;
+        err.chips = o.times.map((t) => minToLabel(hmToMin(t)));
+        return tx("optionTime", { option: esc(o.label), times: joinAnd(o.times.map((t) => minToShort(hmToMin(t)))) });
+      }
+      if (err.code === "staffHours" || err.code === "staffClash") {
+        const s = d.staff;
+        return tx(err.code === "staffHours" ? "timeStaff" : "staffTimeClash", { staff: s.name, range: rangeText(s),
+          weekday: d.date ? weekdayPlural(d.date) : "that day", date: d.date ? fmtDate(d.date) : "that day", time: minToLabel(err.min) });
+      }
+      if (FIELDS[err.field]) {
+        const f = FIELDS[err.field];
+        return fill(err.code === "tooBig" ? f.tooBig || f.invalid : f.invalid);
+      }
+      const texts = {
+        date: { impossible: "dateImpossible", past: "datePast", closed: "dateClosed", far: "dateFar", todayLate: "dateTodayLate", unclear: "dateUnclear" },
+        time: { range: "timeRange", late: "timeLate", past: "timePast", unclear: "timeUnclear" }
+      };
+      const key = (texts[err.field] || {})[err.code] || "rephrase";
+      return tx(key, { weekday: err.date ? weekdayPlural(err.date) : "that day", ...hoursTokens(err.field === "time" ? d.date : null) });
     }
-    return r;
-  }
+    function ackText(added, intro) {
+      const d = Flow.data, bits = [];
+      const withStaff = d.staff && added.includes("staff") ? ` with <b>${esc(d.staff.name)}</b>` : "";
+      let lead = "";
+      if (Flow.earliest && added.includes("date")) {
+        lead = tx("earliest", { date: relDate(d.date), at: d.time != null ? ` at <b>${timeLabel(d.time)}</b>` : "",
+          with: d.staff ? ` with <b>${esc(d.staff.name)}</b> (${esc(d.staff.specialty)})` : "" });
+        Flow.earliest = false;
+      } else if (added.includes("date")) {
+        bits.push(`<b>${fmtDate(d.date)}</b>` + (added.includes("time") ? ` at <b>${timeLabel(d.time)}</b>` : d.part ? ` (${d.part})` : "") + withStaff);
+      } else if (added.includes("time")) bits.push(`<b>${timeLabel(d.time)}</b>` + withStaff);
+      else if (added.includes("staff")) bits.push(`<b>${esc(d.staff.name)}</b> (${esc(d.staff.specialty)})`);
+      if (added.includes("phone")) bits.push("your phone number");
+      for (const id of Object.keys(FIELDS)) {
+        if (!added.includes(id)) continue;
+        const f = FIELDS[id];
+        if (f.ackAlone === false && !(bits.length || lead)) continue;
+        let v = fieldValueText(id, d[id]);
+        if (f.ackLower) v = v.toLowerCase();
+        bits.push(fill(f.ack || "{value}", { value: esc(v) }));
+      }
+      const hi = added.includes("name") ? tx("thanksName", { first: esc(firstName(d.name)) })
+        : intro ? tx(Flow.active === "book" ? "introBook" : "introResched") : tx("great");
+      return hi + lead + (bits.length ? tx("noted", { items: joinAnd(bits) }) : "");
+    }
+    function changedText(changed) {
+      const d = Flow.data;
+      const label = (k) => {
+        if (k === "name") return `your name to <b>${esc(d.name || "")}</b>`;
+        if (k === "phone") return `your phone number to <b>${esc(d.phone || "")}</b>`;
+        if (k === "date") return d.date ? `the date to <b>${fmtDate(d.date)}</b>` : "the date";
+        if (k === "time") return d.time != null ? `the time to <b>${timeLabel(d.time)}</b>` : "the time";
+        if (k === "staff") return d.staff ? `the ${ST.singular} to <b>${esc(d.staff.name)}</b>` : `the ${ST.singular}`;
+        const f = FIELDS[k];
+        return `${f.changeLabel || "the " + f.label.toLowerCase()} to <b>${esc(fieldValueText(k, d[k]))}</b>`;
+      };
+      return tx("updated", { changes: joinAnd(changed.map(label)) });
+    }
 
-  function errorText(err) {
-    const d = Flow.data;
-    if (err.field === "doctor") {
-      const doc = err.doctor, next = nextDateFor(doc, d.date);
-      err.chips = next ? [`${fmtShort(next)} with ${doc.short}`] : [];
-      return fill(R.doctorUnavailable, { doctor: `<b>${esc(doc.name)}</b>`, short: doc.short, weekday: weekdayPlural(d.date),
-        next: next ? relDate(next) : "—", range: rangeText(doc), date: fmtDate(d.date) }) +
-        docCards(availableDoctors(d.date, null), null, (x) => x.name);
+    // After new data: report errors, acknowledge what was captured, then ask for what's still missing.
+    function advance(r, o = {}) {
+      const d = Flow.data;
+      if (r.errors.length) {
+        const [err, extra] = r.errors;
+        const lead = r.changed.length ? changedText(r.changed) + " " : r.added.length ? ackText(r.added, o.intro) : "";
+        let html = lead + errorText(err);
+        if (extra && extra.field === "time" && (extra.code === "range" || extra.code === "late"))
+          html += " " + tx("timeAlso", { time: minToLabel(extra.min) });
+        Flow.step = err.field;
+        return invalid(err.field, html, err.chips || chipsFor(err.field));
+      }
+      const next = nextStep();
+      let prefix = "";
+      if (r.changed.length) prefix = changedText(r.changed) + " ";
+      else if (r.added.length && !(r.added.length === 1 && r.added[0] === o.step)) prefix = ackText(r.added, o.intro);
+      // Recommend the right specialist as soon as we know the reason (and the date)
+      const rec = recStaff(d);
+      if (Flow.active === "book" && rec && !d.staff && d.date && !Flow.recNoted && next !== "staff") {
+        prefix += recommendText(rec, d.date) + " ";
+        Flow.recNoted = true;
+      }
+      if (next === "submit") return submitRequest();
+      askStep(next, { prefix });
     }
-    if (err.code === "doctorHours" || err.code === "doctorClash") {
-      const doc = d.doctor;
-      return fill(err.code === "doctorHours" ? R.timeDoctor : R.doctorTimeClash, { doctor: doc.name, range: rangeText(doc),
-        weekday: d.date ? weekdayPlural(d.date) : "that day", date: d.date ? fmtDate(d.date) : "that day", time: minToLabel(err.min) });
+
+    function fieldFromText(n) {
+      if (ST && new RegExp(`\\b(${[ST.singular, ...(ST.words || []), ...(ST.titles || [])].join("|")})\\b`).test(n)) return BOOK_STEPS.includes("staff") && Flow.active === "book" ? "staff" : null;
+      if (/\bname\b/.test(n)) return "name";
+      if (/\b(phone|number|mobile)\b/.test(n)) return "phone";
+      if (/\b(date|day)\b/.test(n)) return "date";
+      if (/\b(time|hour)\b/.test(n)) return "time";
+      if (Flow.active === "book") for (const [id, f] of Object.entries(FIELDS)) if (BOOK_STEPS.includes(id) && new RegExp(`\\b(${f.words || f.label.toLowerCase()})\\b`).test(n)) return id;
+      return null;
     }
-    const texts = {
-      date: { impossible: R.dateImpossible, past: R.datePast, sunday: R.dateSunday, closed: R.dateClosed, far: R.dateFar, todayLate: R.dateTodayLate, unclear: R.dateUnclear },
-      time: { range: R.timeRange, late: R.timeLate, past: R.timePast, unclear: R.timeUnclear }
+
+    /* ---------- Wrong-input handling ----------
+       1st wrong attempt  → the friendly, detailed message (with an example)
+       2nd+ wrong attempt → a short message, rotated so it never repeats twice in a row
+       3rd+ wrong attempt → also offer the phone number
+       The counter resets as soon as the customer enters something valid. */
+    function resetFails() { Flow.failField = null; Flow.failCount = 0; }
+    function invalid(field, detailedHtml, chips) {
+      Flow.failCount = Flow.failField === field ? Flow.failCount + 1 : 1;
+      Flow.failField = field;
+      let html = detailedHtml;
+      if (Flow.failCount >= 2) {
+        const options = (FIELDS[field] && FIELDS[field].shortErrors) || SHORT_ERRORS[field] || SHORT_ERRORS.field;
+        html = fill(options[(Flow.failCount - 2) % options.length], hoursTokens(null));   // rotates → never the same line twice in a row
+      }
+      if (Flow.failCount >= 3) html += "<br>" + tx("havingTrouble");
+      return bot(html, chips);
+    }
+    const stepInvalidText = (step) => {
+      if (FIELDS[step]) return fill(FIELDS[step].invalid);
+      return tx({ name: "nameInvalid", phone: "phoneInvalid", date: "dateUnclear", time: "timeUnclear", staff: "staffInvalid", confirm: "confirmInvalid", editPick: "confirmInvalid" }[step]);
     };
-    return fill(texts[err.field][err.code] || R.rephrase);
-  }
-  function ackText(added, intro) {
-    const d = Flow.data, bits = [];
-    const withDoc = d.doctor && added.includes("doctor") ? ` with <b>${esc(d.doctor.name)}</b>` : "";
-    let lead = "";
-    if (Flow.earliest && added.includes("date")) {
-      lead = `The earliest available slot is <b>${relDate(d.date)}</b>` + (d.time != null ? ` at <b>${timeLabel(d.time)}</b>` : "") +
-        (d.doctor ? ` with <b>${esc(d.doctor.name)}</b> (${esc(d.doctor.specialty)})` : "") + ". ";
-      Flow.earliest = false;
-    } else if (added.includes("date")) {
-      bits.push(`<b>${fmtDate(d.date)}</b>` + (added.includes("time") ? ` at <b>${timeLabel(d.time)}</b>` : d.part ? ` (${d.part})` : "") + withDoc);
-    } else if (added.includes("time")) bits.push(`<b>${timeLabel(d.time)}</b>` + withDoc);
-    else if (added.includes("doctor")) bits.push(`<b>${esc(d.doctor.name)}</b> (${esc(d.doctor.specialty)})`);
-    if (added.includes("phone")) bits.push("your phone number");
-    if (added.includes("reason") && (bits.length || lead)) bits.push(`the reason for your visit (${esc(d.reason.toLowerCase())})`);
-    const hi = added.includes("name") ? `Thank you, ${esc(firstName(d.name))}! `
-      : intro ? (Flow.active === "book" ? "Wonderful, let's get you booked in! 😊 " : "Of course, I can help with that. ") : "Great! ";
-    return hi + lead + (bits.length ? `I've noted ${joinAnd(bits)}. ` : "");
-  }
-  function changedText(changed) {
-    const d = Flow.data;
-    const label = {
-      name: `your name to <b>${esc(d.name || "")}</b>`, phone: `your phone number to <b>${esc(d.phone || "")}</b>`,
-      date: d.date ? `the date to <b>${fmtDate(d.date)}</b>` : "the date", time: d.time != null ? `the time to <b>${timeLabel(d.time)}</b>` : "the time",
-      doctor: d.doctor ? `the doctor to <b>${esc(d.doctor.name)}</b>` : "the doctor", reason: `the reason to <b>${esc(d.reason || "")}</b>`
-    };
-    return `No problem — I've updated ${joinAnd(changed.map((k) => label[k]))}.`;
-  }
 
-  // After new data: report errors, acknowledge what was captured, then ask for what's still missing.
-  function advance(r, opts = {}) {
-    const d = Flow.data;
-    if (r.errors.length) {
-      const [err, extra] = r.errors;
-      const lead = r.changed.length ? changedText(r.changed) + " " : r.added.length ? ackText(r.added, opts.intro) : "";
-      let html = lead + errorText(err);
-      if (extra && extra.field === "time" && (extra.code === "range" || extra.code === "late"))
-        html += " " + fill(R.timeAlso, { time: minToLabel(extra.min) });
-      Flow.step = err.field;
-      return invalid(err.field, html, err.chips || chipsFor(err.field));
+    /* =====================================================================
+       ROUTER (booking in progress) — priority: exit → emergency/questions →
+       booking data → step input. The pending step is never lost.
+       ===================================================================== */
+    function handleFlow(text) {
+      const a = analyze(text), n = a.n, step = Flow.step, book = Flow.active === "book", s = a.scores;
+      if (!n) return bot(tx("rephrase"), chipsFor(step));
+      if (a.injection) return outOfScope();
+
+      // Exit words
+      if (!book && step === "date" && /^(just )?cancel( it| my appointment| the appointment| appointment| my reservation| the reservation| reservation)?$/.test(n)) {
+        Flow.data.cancelOnly = true;
+        return submitRequest();
+      }
+      if (ABORT_RE.test(n) || (step !== "confirm" && step !== "editPick" && /^(no|nope|nah)$/.test(n))) {
+        endFlow();
+        return bot(tx("stopped", { what: book ? "booking" : "request" }), BOT.quickReplies);
+      }
+      if (MY_BOOKING_RE.test(n)) { showMyBookings(); return continuePrompt(); }
+
+      const confirming = step === "confirm" || step === "editPick";
+      const e = extractEntities(text, confirming ? null : step);
+      if (book && ((s.book || 0) >= 3 || hasCore(e)) && !a.question) {
+        Object.entries(textFieldFrom(a)).forEach(([id, v]) => { if (e.fields[id] == null) e.fields[id] = v; });
+      }
+      const textAdded = Object.keys(e.fields).some((id) => FIELDS[id] && FIELDS[id].type === "text" && Flow.data[id] == null);
+      const dataCore = !!(e.name || e.phone || e.date || e.dateError || e.time != null || e.timeError || e.staff || e.anyStaff || e.earliest ||
+        Object.keys(e.fields).some((id) => FIELDS[id] && FIELDS[id].type !== "text"));
+      const data = dataCore || !!e.part || textAdded;
+      let ans = buildAnswer(a, e, true);
+      // "What does it cost?" / "how long is it?" mid-booking → details of the chosen property, class or service
+      const picked = Object.keys(FIELDS).map((id) => Flow.data[id]).find((v) => v && typeof v === "object" && v.info);
+      if (a.question && picked && !a.urgent && /\b(cost|costs|price|how much|how long|when|what time|it|details|info)\b/.test(n) &&
+          (!ans || /\b(it|this|that)\b/.test(n))) ans = { html: fill(picked.info), chips: null };
+
+      // Free-text fields (e.g. reason for visit) — unless it's clearly a question, new data or an emergency
+      const f = FIELDS[step];
+      if (f && f.type === "text" && !dataCore && !e.part && !a.question && !(a.urgent && a.tokens.length > 4)) {
+        if (a.gibberish || text.trim().length < 2) return invalid(step, fill(f.invalid), chipsFor(step));
+        return advance(applyEntities({ fields: { [step]: text.trim().slice(0, 120) } }), { step });
+      }
+
+      // A plain name at the name step is the answer (even if it matches a staff surname, e.g. "Omar Khan").
+      // A full name typed at another step while we still need it counts too (e.g. "Leo Park" after a date error).
+      if (!a.question && !a.urgent && !dataCore && Flow.data.name == null && step !== "name" && stepsOf().includes("name") &&
+          stripIntro(text).split(/\s+/).length >= 2 && nameValid(stripIntro(text))) {
+        return advance(applyEntities({ name: titleCase(stripIntro(text)), fields: {} }), { step });
+      }
+      if (step === "name" && !a.question && !a.urgent && !dataCore) {
+        const candidate = stripIntro(text);
+        if (nameValid(candidate)) return advance(applyEntities({ name: titleCase(candidate), fields: {} }), { step });
+      }
+
+      // 1) Emergencies & questions are always answered first
+      if (ans && (a.question || a.urgent || !data || ans.info)) {
+        bot(ans.html.replace(/\s*Would you like (me )?to book (one|an appointment|a table|a viewing)( for you)?\?/g, ""), ans.info ? ans.chips : null);   // already booking
+        if (!data || ans.info) return continuePrompt();
+      }
+
+      // 2) Booking data anywhere in the message (also handles "actually make it Thursday")
+      if (data) {
+        if (step === "name" && !e.name) {
+          const candidate = stripIntro(e.rest || "");
+          if (candidate && nameValid(candidate)) e.name = titleCase(candidate);
+        }
+        return advance(applyEntities(e), { step });
+      }
+
+      // 3) Confirmation step
+      if (confirming) {
+        const field = fieldFromText(n);
+        if (step === "editPick" && field) return askStep(field, { prefix: tx("sure") });
+        if (EDIT_RE.test(n)) {
+          if (field) return askStep(field, { prefix: tx("sure") });
+          Flow.step = "editPick";
+          return bot(tx("editWhich"), EDIT_CHIPS);
+        }
+        if (YES_RE.test(n) && !NO_RE.test(n)) return submitRequest();
+        if (NO_RE.test(n)) { endFlow(); return bot(tx("notBooked"), BOT.quickReplies); }
+      }
+
+      // 4) Plain answer to the pending step
+      if (step === "name") {
+        const candidate = stripIntro(text);
+        if (nameValid(candidate)) return advance(applyEntities({ name: titleCase(candidate), fields: {} }), { step });
+      }
+      if ((s.bye || 0) >= 3) return bot(answerHtml("bye"));
+      if ((s.thanks || 0) >= 3 || (s.greeting || 0) >= 3) {
+        bot((s.thanks || 0) >= 3 ? tx("thanksMidFlow") : tx("helloMidFlow"));
+        return continuePrompt();
+      }
+      if (/^(yes|yeah|yep|yup|sure|ok|okay|yes please|continue|go on|lets continue)$/.test(n)) return askStep(step, { short: true });
+      if (a.offTopic && !a.onTopic) return outOfScope();
+
+      // 5) Nothing usable → wrong-input message for this step
+      return invalid(confirming ? "confirm" : step, stepInvalidText(step), chipsFor(step));
     }
-    const next = nextStep();
-    let prefix = "";
-    if (r.changed.length) prefix = changedText(r.changed) + " ";
-    else if (r.added.length && !(r.added.length === 1 && r.added[0] === opts.step)) prefix = ackText(r.added, opts.intro);
-    // Recommend the right specialist as soon as we know the reason (and the date)
-    const rec = recDoc(d);
-    if (Flow.active === "book" && rec && !d.doctor && d.date && !Flow.recNoted && next !== "doctor") {
-      prefix += recommendText(rec, d.date) + " ";
-      Flow.recNoted = true;
-    }
-    if (next === "submit") return submitRequest();
-    askStep(next, { prefix });
-  }
 
-  function fieldFromText(n) {
-    if (/\b(doctor|dentist|dr)\b/.test(n)) return Flow.active === "book" ? "doctor" : null;
-    if (/\bname\b/.test(n)) return "name";
-    if (/\b(phone|number|mobile)\b/.test(n)) return "phone";
-    if (/\b(date|day)\b/.test(n)) return "date";
-    if (/\b(time|hour)\b/.test(n)) return "time";
-    if (/\breason\b/.test(n) && Flow.active === "book") return "reason";
-    return null;
-  }
-
-  /* ---------- Wrong-input handling ----------
-     1st wrong attempt  → the friendly, detailed message (with an example)
-     2nd+ wrong attempt → a short message, rotated so it never repeats twice in a row
-     3rd+ wrong attempt → also offer the clinic phone number
-     The counter resets as soon as the patient enters something valid. */
-  const SHORT_ERRORS = {
-    name: () => ["Please enter a valid name.",
-                 "Hmm, that still doesn't look right. Please enter your full name (letters only).",
-                 "Please type your name using letters only."],
-    phone: () => ["Please enter a valid phone number.",
-                  "Hmm, that still doesn't look right. Please enter a valid phone number.",
-                  "Please enter a valid phone number (digits only)."],
-    date: () => ["Please enter a valid date (Monday to Saturday).",
-                 "Hmm, that still doesn't look right. Please enter a valid date.",
-                 "Please tap one of the dates below, or type one like “Oct 12”."],
-    time: () => ["Please enter a valid time.",
-                 `Hmm, that still doesn't look right. Please enter a time between ${minToShort(OPEN_MIN)} and ${minToShort(LAST_MIN)}.`,
-                 "Please tap one of the times below, or type one like “3:30 PM”."],
-    doctor: () => ["Please choose one of the available doctors.",
-                   "Please tap one of the doctors above, or “Any doctor”."],
-    reason: () => ["Please enter a short reason for your visit.",
-                   "Please tap one of the options below, or type a short reason."],
-    confirm: () => ["Please reply Yes or Edit.",
-                    "Hmm, I didn't catch that. Tap “Yes, confirm” to book, or “Edit details” to make changes."]
-  };
-  function resetFails() { Flow.failField = null; Flow.failCount = 0; }
-  function invalid(field, detailedHtml, chips) {
-    Flow.failCount = Flow.failField === field ? Flow.failCount + 1 : 1;
-    Flow.failField = field;
-    let html = detailedHtml;
-    if (Flow.failCount >= 2) {
-      const options = SHORT_ERRORS[field]();
-      html = options[(Flow.failCount - 2) % options.length];       // rotates → never the same line twice in a row
-    }
-    if (Flow.failCount >= 3) html += `<br>Having trouble? You can also call us at ${fill("{phone}")}.`;
-    return bot(html, chips);
-  }
-  const STEP_INVALID = { name: "nameInvalid", phone: "phoneInvalid", date: "dateUnclear", time: "timeUnclear", doctor: "doctorInvalid",
-    reason: "reasonInvalid", confirm: "confirmInvalid", editPick: "confirmInvalid" };
-
-  /* =====================================================================
-     ROUTER (booking in progress) — priority: exit → emergency/questions →
-     booking data → step input. The pending step is never lost.
-     ===================================================================== */
-  function handleFlow(text) {
-    const a = analyze(text), n = a.n, step = Flow.step, book = Flow.active === "book", s = a.scores;
-    if (!n) return bot(R.rephrase, chipsFor(step));
-    if (a.injection) return bot(esc(CONFIG.bot.outOfScope));
-
-    // Exit words
-    if (!book && step === "date" && /^(just )?cancel( it| my appointment| the appointment| appointment)?$/.test(n)) {
-      Flow.data.cancelOnly = true;
-      return submitRequest();
-    }
-    if (ABORT_RE.test(n) || (step !== "confirm" && step !== "editPick" && /^(no|nope|nah)$/.test(n))) {
+    function submitRequest() {
+      const d = Flow.data, book = Flow.active === "book", pending = Flow.pending || [];
+      const rec = {
+        id: Date.now(), business: B.name,
+        type: book ? "new" : d.cancelOnly ? "cancel" : "reschedule",
+        rows: book ? summaryRows(d) : [["Name", d.name], ["Phone", d.phone], ["Date", d.date && !d.cancelOnly ? fmtDate(d.date) : ""], ["Time", d.time != null && !d.cancelOnly ? timeLabel(d.time) : ""], ["Request", d.cancelOnly ? "Cancel" : "Reschedule"]],
+        createdAt: new Date().toISOString()
+      };
       endFlow();
-      return bot(R.stopped.replace("{what}", book ? "booking" : "request"), CONFIG.bot.quickReplies);
-    }
-    if (MY_BOOKING_RE.test(n)) { showMyBookings(); return continuePrompt(); }
+      saveRequest(rec);   // In production: POST this to your backend → email / WhatsApp / Google Sheets / CRM
+      if (rec.type === "new") SESSION.bookings.push(rec);
 
-    const confirming = step === "confirm" || step === "editPick";
-    const e = extractEntities(text, confirming ? null : step);
-    if (book && (s.book >= 3 || hasCore(e)) && !a.question) { const reason = reasonFrom(a); if (reason) e.reason = reason; }
-    const data = hasData(e) || (!!e.reason && Flow.data.reason == null);
-    const ans = buildAnswer(a, e, true);
+      if (rec.type === "new") bot(tx("sentNew"));
+      else if (rec.type === "cancel") bot(tx("sentCancel"));
+      else bot(tx("sentResched", { date: fmtDate(d.date), time: timeLabel(d.time) }));
 
-    // Reason for visit is free text — unless it's clearly a question, new data or an emergency
-    if (step === "reason" && !hasData(e) && !a.question && !(a.urgent && a.tokens.length > 4)) {
-      if (a.gibberish || text.trim().length < 2) return invalid("reason", R.reasonInvalid, chipsFor("reason"));
-      return advance(applyEntities({ reason: text.trim().slice(0, 120) }), { step });
-    }
-
-    // A plain name at the name step is the answer (even if it matches a doctor's surname, e.g. "Omar Khan")
-    if (step === "name" && !a.question && !a.urgent && !hasCore(e)) {
-      const candidate = stripIntro(text);
-      if (nameValid(candidate)) return advance(applyEntities({ name: titleCase(candidate) }), { step });
-    }
-
-    // 1) Emergencies & questions are always answered first
-    if (ans && (a.question || a.urgent || !data || ans.info)) {
-      bot(ans.html.replace(/\s*Would you like (me )?to book (one|an appointment)( for you)?\?/g, ""), ans.info ? ans.chips : null);   // already booking
-      if (!data || ans.info) return continuePrompt();
-    }
-
-    // 2) Booking data anywhere in the message (also handles "actually make it Thursday" / "change doctor to Dr. Maria")
-    if (data) {
-      if (step === "name" && !e.name) {
-        const candidate = stripIntro(e.rest || "");
-        if (candidate && nameValid(candidate)) e.name = titleCase(candidate);
+      // Booking for more than one person → start the next booking right away
+      if (book && pending.length) {
+        const who = pending[0];
+        Flow.active = "book"; Flow.pending = pending.slice(1); Flow.prevPhone = d.phone;
+        return askStep(BOOK_STEPS[0], { prefix: tx("multiNext", { who }) + " ", html: tx("multiAskName", { who }) });
       }
-      return advance(applyEntities(e), { step });
+      bot(tx("anythingElse"), BOT.quickReplies);
     }
 
-    // 3) Confirmation step
-    if (confirming) {
-      const field = fieldFromText(n);
-      if (step === "editPick" && field) return askStep(field, { prefix: "Sure! " });
-      if (EDIT_RE.test(n)) {
-        if (field) return askStep(field, { prefix: "Sure! " });
-        Flow.step = "editPick";
-        return bot(R.editWhich, EDIT_CHIPS);
-      }
-      if (YES_RE.test(n) && !NO_RE.test(n)) return submitRequest();
-      if (NO_RE.test(n)) { endFlow(); return bot(R.notBooked, CONFIG.bot.quickReplies); }
+    /* ---------- Requests: stored locally + announced to the host page ---------- */
+    const STORE_KEY = "demochatbot_requests_" + (CONFIG.id || "default");
+    const SESSION = { bookings: [] };
+    function saveRequest(rec) {
+      try {
+        const all = JSON.parse(localStorage.getItem(STORE_KEY)) || [];
+        localStorage.setItem(STORE_KEY, JSON.stringify([rec, ...all]));
+      } catch (err) { /* storage unavailable — ignore */ }
+      // Any page can listen: window.addEventListener("demochatbot:request", e => console.log(e.detail))
+      window.dispatchEvent(new CustomEvent("demochatbot:request", { detail: rec }));
     }
 
-    // 4) Plain answer to the pending step
-    if (step === "name") {
-      const candidate = stripIntro(text);
-      if (nameValid(candidate)) return advance(applyEntities({ name: titleCase(candidate) }), { step });
+    /* =====================================================================
+       OPEN / CLOSE / WIRING
+       ===================================================================== */
+    let prevBodyOverflow = "", tooltipTimer;
+    function setUnread(k) { unread = k; unreadEl.textContent = k; unreadEl.classList.toggle("show", k > 0); }
+    function showTooltip(autoHideMs) {
+      if (isOpen()) return;
+      tooltip.classList.add("show");
+      clearTimeout(tooltipTimer);
+      if (autoHideMs) tooltipTimer = later(hideTooltip, autoHideMs);
     }
-    if (s.bye >= 3) return bot(fill(intentById.bye.answer));
-    if (s.thanks >= 3 || s.greeting >= 3) {
-      bot(s.thanks >= 3 ? R.thanksMidFlow : fill(intentById.greeting.answer).replace(" How can I help you today?", ""));
-      return continuePrompt();
+    function hideTooltip() { clearTimeout(tooltipTimer); tooltip.classList.remove("show"); }
+    function openChat() {
+      root.classList.add("open");
+      launcher.setAttribute("aria-expanded", "true");
+      launcher.setAttribute("aria-label", "Close chat");
+      hideTooltip(); setUnread(0);
+      if (isMobile()) { prevBodyOverflow = document.body.style.overflow; document.body.style.overflow = "hidden"; }
+      if (!started) { started = true; welcome(); }
+      fitToViewport();
+      later(() => { if (!isMobile()) input.focus(); }, 320);
     }
-    if (/^(yes|yeah|yep|yup|sure|ok|okay|yes please|continue|go on|lets continue)$/.test(n)) return askStep(step, { short: true });
-    if (a.offTopic && !a.onTopic) return bot(esc(CONFIG.bot.outOfScope));
+    function closeChat() {
+      root.classList.remove("open");
+      launcher.setAttribute("aria-expanded", "false");
+      launcher.setAttribute("aria-label", "Open chat");
+      document.body.style.overflow = prevBodyOverflow;
+      fitToViewport();
+    }
+    // Phones: size the chat to the *visible* area, so the input box stays above the on-screen keyboard
+    const vv = window.visualViewport;
+    function fitToViewport() {
+      if (!vv || !isOpen() || !isMobile()) { root.style.removeProperty("--bs-vh"); root.style.removeProperty("--bs-top"); return; }
+      root.style.setProperty("--bs-vh", vv.height + "px");
+      root.style.setProperty("--bs-top", vv.offsetTop + "px");
+      scrollDown();
+    }
+    const onKey = (ev) => { if (ev.key === "Escape" && isOpen()) closeChat(); };
+    if (vv) { vv.addEventListener("resize", fitToViewport); vv.addEventListener("scroll", fitToViewport); }
+    window.addEventListener("resize", fitToViewport);
+    document.addEventListener("keydown", onKey);
+    input.addEventListener("focus", () => later(fitToViewport, 300));
 
-    // 5) Nothing usable → wrong-input message for this step
-    return invalid(confirming ? "confirm" : step, R[STEP_INVALID[step]], chipsFor(step));
-  }
+    function welcome() {
+      const sep = document.createElement("div");
+      sep.className = "day-sep"; sep.textContent = T.todayLabel;
+      chatBody.appendChild(sep);
+      bot(esc(BOT.welcome.replace("{business}", B.name)), BOT.quickReplies);
+    }
+    function restart() {
+      session++; queue = Promise.resolve(); endFlow();
+      chatBody.innerHTML = ""; setChips([]);
+      welcome();
+    }
 
-  function submitRequest() {
-    const d = Flow.data, book = Flow.active === "book", pending = Flow.pending || [];
-    const rec = {
-      id: Date.now(),
-      type: book ? "new" : d.cancelOnly ? "cancel" : "reschedule",
-      name: d.name, phone: d.phone,
-      date: d.date && !d.cancelOnly ? toISO(d.date) : null,
-      time: d.time != null && !d.cancelOnly ? timeLabel(d.time) : null,
-      doctor: d.doctor ? `${d.doctor.name} (${d.doctor.specialty})` : null,
-      reason: book ? d.reason : d.cancelOnly ? "Cancel appointment" : "Reschedule appointment",
-      createdAt: new Date().toISOString()
+    launcher.onclick = () => (isOpen() ? closeChat() : openChat());
+    launcher.addEventListener("mouseenter", () => showTooltip());
+    launcher.addEventListener("mouseleave", () => hideTooltip());
+    tooltip.onclick = openChat;
+    $(".head-btn.close").onclick = closeChat;
+    $(".head-btn.restart").onclick = restart;
+    if (opts.onSwitch) $(".head-btn.switch").onclick = () => { closeChat(); opts.onSwitch(); };
+    $(".chat-input").onsubmit = (ev) => { ev.preventDefault(); sendUser(input.value); };
+
+    // Show the tooltip + unread badge a few seconds after page load
+    if (BOT.showTooltipAfterMs > 0 && !opts.open) later(() => { if (!started) { showTooltip(8000); setUnread(1); } }, BOT.showTooltipAfterMs);
+
+    function destroy() {
+      destroyed = true; session++;
+      timers.forEach(clearTimeout);
+      if (vv) { vv.removeEventListener("resize", fitToViewport); vv.removeEventListener("scroll", fitToViewport); }
+      window.removeEventListener("resize", fitToViewport);
+      document.removeEventListener("keydown", onKey);
+      if (isOpen()) document.body.style.overflow = prevBodyOverflow;
+      host.remove();
+    }
+
+    const api = {
+      open: openChat,
+      close: closeChat,
+      book: () => { openChat(); if (!Flow.active) queue.then(() => sendUser(BOT.quickReplies[0])); },
+      config: CONFIG
     };
-    endFlow();
-    saveRequest(rec);   // In production: POST this to your backend → email / WhatsApp / Google Sheets / CRM
-    if (rec.type === "new") Session.bookings.push(rec);
-
-    if (rec.type === "new") bot("✅ Your appointment request has been sent. Our team will call you to confirm.");
-    else if (rec.type === "cancel") bot("✅ Your cancellation request has been sent. Our team will call you shortly to confirm.");
-    else bot(`✅ Your request to move your appointment to <b>${fmtDate(d.date)}</b> at <b>${rec.time}</b> has been sent. Our team will call you shortly to confirm.`);
-
-    // Booking for more than one person → start the next booking right away
-    if (book && pending.length) {
-      const who = pending[0];
-      Flow.active = "book"; Flow.pending = pending.slice(1); Flow.prevPhone = d.phone;
-      return askStep("name", { prefix: fill(R.multiNext, { who }) + " ", html: `May I have ${who}'s <b>full name</b>?` });
-    }
-    bot("Is there anything else I can help you with?", CONFIG.bot.quickReplies);
-  }
-
-  /* ---------- Requests: stored locally + announced to the host page ---------- */
-  const STORE_KEY = "brightsmile_demo_requests";
-  function saveRequest(rec) {
-    try {
-      const all = JSON.parse(localStorage.getItem(STORE_KEY)) || [];
-      localStorage.setItem(STORE_KEY, JSON.stringify([rec, ...all]));
-    } catch (e) { /* storage unavailable — ignore */ }
-    // Any page can listen: window.addEventListener("brightsmile:request", e => console.log(e.detail))
-    window.dispatchEvent(new CustomEvent("brightsmile:request", { detail: rec }));
+    const mountNow = () => { document.body.appendChild(host); if (opts.open) later(openChat, opts.openDelay || 300); };
+    if (document.body) mountNow(); else document.addEventListener("DOMContentLoaded", mountNow);
+    return { api, destroy };
   }
 
   /* =====================================================================
-     OPEN / CLOSE / WIRING
+     PUBLIC API + AUTO-MOUNT
      ===================================================================== */
-  let prevBodyOverflow = "", tooltipTimer;
-  function setUnread(n) { unread = n; unreadEl.textContent = n; unreadEl.classList.toggle("show", n > 0); }
-  function showTooltip(autoHideMs) {
-    if (isOpen()) return;
-    tooltip.classList.add("show");
-    clearTimeout(tooltipTimer);
-    if (autoHideMs) tooltipTimer = setTimeout(hideTooltip, autoHideMs);
+  let current = null;
+  function mount(type, o = {}) {
+    const cfg = REGISTRY[type];
+    if (!cfg) { console.warn(`[DemoChatbot] No config registered for "${type}".`); return null; }
+    if (current) current.destroy();
+    current = createBot(cfg, o);
+    window.BrightSmileChat = current.api;          // backwards-compatible name
+    window.dispatchEvent(new CustomEvent("demochatbot:mounted", { detail: { type, config: cfg } }));
+    return current.api;
   }
-  function hideTooltip() { clearTimeout(tooltipTimer); tooltip.classList.remove("show"); }
+  window.DemoChatbot = { mount, configs: REGISTRY, get current() { return current && current.api; } };
 
-  function openChat() {
-    root.classList.add("open");
-    launcher.setAttribute("aria-expanded", "true");
-    launcher.setAttribute("aria-label", "Close chat");
-    hideTooltip(); setUnread(0);
-    if (isMobile()) { prevBodyOverflow = document.body.style.overflow; document.body.style.overflow = "hidden"; }
-    if (!started) { started = true; welcome(); }
-    fitToViewport();
-    setTimeout(() => { if (!isMobile()) input.focus(); }, 320);
+  // Auto-mount unless the page asks to control it (data-manual)
+  if (SCRIPT && !SCRIPT.hasAttribute("data-manual")) {
+    const keys = Object.keys(REGISTRY);
+    const type = (SCRIPT.getAttribute("data-type") || (keys.length === 1 ? keys[0] : "dental")).replace(/[^a-z0-9-]/gi, "");
+    if (REGISTRY[type]) mount(type);
+    else {
+      const s = document.createElement("script");                       // load configs/<type>.js next to chatbot.js
+      s.src = new URL(`configs/${type}.js`, SCRIPT.src).href;
+      s.onload = () => mount(type);
+      document.head.appendChild(s);
+    }
   }
-  function closeChat() {
-    root.classList.remove("open");
-    launcher.setAttribute("aria-expanded", "false");
-    launcher.setAttribute("aria-label", "Open chat");
-    document.body.style.overflow = prevBodyOverflow;
-    fitToViewport();
-  }
-
-  // Phones: size the chat to the *visible* area, so the input box stays above the on-screen keyboard
-  const vv = window.visualViewport;
-  function fitToViewport() {
-    if (!vv || !isOpen() || !isMobile()) { root.style.removeProperty("--bs-vh"); root.style.removeProperty("--bs-top"); return; }
-    root.style.setProperty("--bs-vh", vv.height + "px");
-    root.style.setProperty("--bs-top", vv.offsetTop + "px");
-    scrollDown();
-  }
-  if (vv) { vv.addEventListener("resize", fitToViewport); vv.addEventListener("scroll", fitToViewport); }
-  window.addEventListener("resize", fitToViewport);
-  input.addEventListener("focus", () => setTimeout(fitToViewport, 300));
-  function welcome() {
-    const sep = document.createElement("div");
-    sep.className = "day-sep"; sep.textContent = "Today";
-    chatBody.appendChild(sep);
-    bot(esc(CONFIG.bot.welcome), CONFIG.bot.quickReplies);
-  }
-  function restart() {
-    session++; queue = Promise.resolve(); endFlow();
-    chatBody.innerHTML = ""; setChips([]);
-    welcome();
-  }
-
-  launcher.onclick = () => (isOpen() ? closeChat() : openChat());
-  launcher.addEventListener("mouseenter", () => showTooltip());
-  launcher.addEventListener("mouseleave", () => hideTooltip());
-  tooltip.onclick = openChat;
-  $(".head-btn.close").onclick = closeChat;
-  $(".head-btn.restart").onclick = restart;
-  $(".chat-input").onsubmit = (e) => { e.preventDefault(); sendUser(input.value); };
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && isOpen()) closeChat(); });
-
-  // Show the tooltip + unread badge a few seconds after page load
-  if (CONFIG.bot.showTooltipAfterMs > 0) {
-    setTimeout(() => { if (!started) { showTooltip(8000); setUnread(1); } }, CONFIG.bot.showTooltipAfterMs);
-  }
-
-  // Optional JS API for the host site, e.g. a "Book now" button:
-  //   <button onclick="BrightSmileChat.book()">Book now</button>
-  window.BrightSmileChat = {
-    open: openChat,
-    close: closeChat,
-    book: () => { openChat(); if (!Flow.active) queue.then(() => sendUser("Book Appointment")); }
-  };
-
-  function mount() { document.body.appendChild(host); }
-  if (document.body) mount(); else document.addEventListener("DOMContentLoaded", mount);
 })();

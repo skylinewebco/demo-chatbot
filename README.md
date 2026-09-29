@@ -1,34 +1,46 @@
 # Demo Chatbot
 
-A ready-to-use AI receptionist chatbot for a dental clinic ("Bright Smile Dental Clinic" — a fictional demo). It runs entirely in the browser with no API key and no dependencies.
+AI chatbot demos for five industries, built on **one engine with separate configs**. Each bot answers only about its own business and takes bookings (appointments, tables, property viewings or trial classes). It runs entirely in the browser, with no API key and no dependencies.
 
 **Live demo:** https://skylinewebco.github.io/demo-chatbot/
 
-## What it does
+| Industry | Business (fictional) | Direct link |
+|---|---|---|
+| Dental Clinic | Bright Smile Dental Clinic | `?type=dental` |
+| Restaurant | Spice Garden | `?type=restaurant` |
+| Real Estate | Prime Homes Realty | `?type=realestate` |
+| Beauty Salon | Glow Studio | `?type=salon` |
+| Gym & Fitness | Iron Pulse Fitness | `?type=gym` |
 
-- Answers patient questions about services, prices, opening hours, location, insurance, payments and doctors (typo-tolerant, understands different wordings)
-- Books appointments step by step: name, phone, date, reason, doctor and time, then shows a summary to confirm
-- Shows only the doctors available on the chosen day, recommends the right specialist, and checks times against each doctor's hours
-- Understands full messages like *"Next Tuesday at 7:45pm with Dr. Ali for root canal"*
-- Handles emergencies first, never gives medical advice, and politely declines off-topic questions
-- Dark theme, mobile responsive, and isolated with Shadow DOM so it never clashes with your site's CSS
+- With no `?type`, the page shows all five industry cards, and the chat header has a "Switch industry" button.
+- With `?type=…`, the page shows only that business, and its chatbot opens automatically.
 
-## Add it to any website
+## What the bots do
 
-Copy `chatbot.js` to your site and add this one line before `</body>`:
+- Answer questions about the business: prices, hours, location, staff and 25+ Q&As each. They handle typos and several questions in one message.
+- Take bookings step by step and validate names, phone numbers, dates and times, using the device's real date for "today", "tomorrow" and "next Monday".
+- Show which staff members are available on a given day, recommend the right specialist, and check times against that person's hours.
+- Answer the actual question first and then continue the booking. Details can be changed mid-booking, for example "actually make it Thursday".
+- Give a polite one-line reply to anything off-topic, including other industries and prompt-injection attempts.
+- Use a dark design with an accent colour per business. They're mobile-friendly and isolated with Shadow DOM.
+
+## Add a chatbot to any website
 
 ```html
-<script src="chatbot.js"></script>
+<script src="chatbot.js" data-type="restaurant"></script>
 ```
 
-That's it — a chat button appears in the bottom-right corner.
+The engine loads `configs/restaurant.js` automatically; keep the `configs` folder next to `chatbot.js`. Without `data-type`, it loads the dental bot.
 
-## Customize
+## New client in 3 steps
 
-All clinic details (name, phone numbers, hours, prices, doctors, and Q&A) live in the `CONFIG` object at the top of `chatbot.js`. Edit it to set up the chatbot for a new client.
+1. Copy a file in `configs/`, for example `configs/salon.js` → `configs/my-client.js`.
+2. Change the key at the top (`.salon =` → `["my-client"] =`), then edit the business info, hours, staff, prices, booking fields and Q&As.
+3. Embed it with `<script src="chatbot.js" data-type="my-client"></script>`.
 
 ## Files
 
-- `chatbot.js` — the complete chatbot (design, logic and configuration)
-- `index.html` — a blank page for testing the chatbot on its own
-- `netlify.toml` — Netlify settings (serves the project root, no build step)
+- `chatbot.js`: the chatbot engine (design, logic and booking flow)
+- `configs/*.js`: one config per business
+- `index.html`: the demo landing page and the direct-link pages
+- `netlify.toml`: Netlify settings (serves the project root, no build step)
