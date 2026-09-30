@@ -1978,7 +1978,7 @@
       if (f && f.type === "text" && !dataCore && !e.part && !a.question && !(a.urgent && a.tokens.length > 4)) {
         if (a.gibberish || text.trim().length < 2) return invalid(step, fill(f.invalid), chipsFor(step));
         const mapped = textFieldFrom(a)[step];                         // "cleaning" → "Teeth cleaning"
-        return advance(applyEntities({ fields: { [step]: mapped || cap(text.trim().replace(/s+/g, " ").slice(0, 120)) } }), { step });
+        return advance(applyEntities({ fields: { [step]: mapped || cap(text.trim().replace(/\s+/g, " ").slice(0, 120)) } }), { step });
       }
 
       // A plain name at the name step is the answer (even if it matches a staff surname, e.g. "Omar Khan").
