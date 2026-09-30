@@ -39,6 +39,14 @@
     multiIntro: "Of course! Let's book them one at a time — first, your {noun}. ",
     multiNext: "Now let's book the {noun} for {who}.",
     multiAskName: "May I have {who}'s <b>full name</b>?",
+    multiIntroN: "I'll happily book {count} {nouns} for you — let's start with the first one. ",
+    multiNextItem: "Now let's book your next {noun}: <b>{item}</b>.",
+    multiNextSame: "Now let's set up {item}.",
+    askCount: "Of course! How many {nouns} would you like to book in total?",
+    groupSaved: "✅ Got it — {noun} {i} of {n} is saved.",
+    groupSummary: "Here's a summary of {all} {nouns}:",
+    closingGroup: "You're all set, {first}! ✅ {All} {nouns} are booked. {contactLine}{extra} {signoff}",
+    samePerson: "Same person",
     myBookings: "Here's what you've booked:",
     myBookingsNote: "Our team will call you to confirm.",
     noBooking: "I don't see a booking in this chat yet. Would you like to make one?",
@@ -48,7 +56,7 @@
     askName: "Wonderful, let's get you booked in! 😊 May I have your <b>full name</b>?",
     askNameResched: "Of course, I can help with that. May I have the <b>full name</b> the {noun} is under?",
     askNameShort: "May I have your <b>full name</b>?",
-    askPhone: "Thank you, {first}! What's the best <b>phone number</b> to reach you on?",
+    askPhone: "Thank you, {first}! What's the best way to reach you: <b>phone number</b>, <b>email</b>, or both?",
     askPhoneResched: "Thank you, {first}. And which <b>phone number</b> was the {noun} booked with?",
     askPhoneShort: "What's the best <b>phone number</b> to reach you on?",
     askDate: "Which <b>date</b> suits you best? We're open {openDaysText} — you can type something like “tomorrow”, “next Monday” or “Oct 12”.",
@@ -113,6 +121,39 @@
     nameInvalid: "Could you please share your <b>full name</b> (letters only)? You can also type “cancel” to stop.",
     phoneInvalid: "Hmm, that doesn't look like a valid phone number. Could you enter it with digits, like <b>+1 555 123 4567</b>?",
     confirmInvalid: "Just reply <b>Yes</b> to confirm, or <b>Edit</b> if anything needs changing.",
+    askContact: "Thank you, {first}! What's the best way to reach you: <b>phone number</b>, <b>email</b>, or both?",
+    askContactShort: "What's the best way to reach you: <b>phone number</b>, <b>email</b>, or both?",
+    askContactResched: "Thank you, {first}. What phone number or email was the {noun} booked with?",
+    askPhoneOnly: "Sure — what's the best <b>phone number</b> to reach you on?",
+    askEmailOnly: "Of course — what's your <b>email address</b>?",
+    askBoth: "Perfect — what are your <b>phone number</b> and <b>email address</b>?",
+    askOtherEmail: "And what's your <b>email address</b>?",
+    askOtherPhone: "And what's the best <b>phone number</b> for you?",
+    ackPhone: "Perfect, I've got your number.",
+    ackEmail: "Got it, I've noted your email.",
+    ackBoth: "Great, I've got both your number and email.",
+    contactInvalid: "I didn't quite catch a phone number or email there — could you share one? For example <b>+1 555 123 4567</b> or <b>name@example.com</b>.",
+    emailInvalid: "Hmm, that email doesn't look quite right — could you double-check it? It should look like <b>name@example.com</b>.",
+    hiName: "Hi {first}! 😊 ",
+    bookFor: "I'd love to help you book for {when}. ",
+    notedWhen: "I've noted {when}. ",
+    alsoNoted: "I've also noted {items}. ",
+    closing: "You're all set, {first}! ✅ {summary}. {contactLine}{extra} {signoff}",
+    closingLine: "Your {noun}{staffWith} is booked for {date} at {time}",
+    contactLinePhone: "{team} will call you on your number to confirm.",
+    contactLineEmail: "{team} will reach out to you by email to confirm.",
+    contactLineBoth: "{team} will contact you by phone or email to confirm.",
+    team: "Our team",
+    closingExtra: "",
+    calendarButton: "📅 Add to Calendar",
+    signoffPhone: "Have a wonderful day! 😊",
+    signoffEmail: "Have a great day! 😊",
+    signoffBoth: "Have a lovely day! 😊",
+    anythingElseOnce: "Is there anything else I can help you with?",
+    yesAfter: "Of course! What else can I help you with?",
+    goodbyes: "Take care, {first}! See you soon. 👋|It was a pleasure, {first}! Have a wonderful day. 👋|You're very welcome, {first}! See you soon. 👋",
+    goodbyeNoName: "Take care! See you soon. 👋",
+    welcomeBack: "You're welcome! 👋",
     dateImpossible: "That date doesn't exist. Could you pick another one?",
     datePast: "That date has already passed. Please choose an upcoming date.",
     dateClosed: "Sorry, we're closed on {weekday}. We're open {hoursShort}. Which other day works for you?",
@@ -128,13 +169,14 @@
 
   // Rotating short messages for the 2nd+ wrong attempt in a row (never the same line twice in a row)
   const DEFAULT_SHORT_ERRORS = {
-    name: ["Please enter a valid name.", "Hmm, that still doesn't look right. Please enter your full name (letters only).", "Please type your name using letters only."],
-    phone: ["Please enter a valid phone number.", "Hmm, that still doesn't look right. Please enter a valid phone number.", "Please enter a valid phone number (digits only)."],
-    date: ["Please enter a valid date ({openDaysText}).", "Hmm, that still doesn't look right. Please enter a valid date.", "Please tap one of the dates below, or type one like “Oct 12”."],
-    time: ["Please enter a valid time.", "Hmm, that still doesn't look right. Please enter a time between {openShort} and {lastShort}.", "Please tap one of the times below, or type one like “3:30 PM”."],
-    staff: ["Please choose one of the available {staffPlural}.", "Please tap one of the {staffPlural} above, or “{anyStaff}”."],
-    confirm: ["Please reply Yes or Edit.", "Hmm, I didn't catch that. Tap “Yes, confirm” to book, or “Edit details” to make changes."],
-    field: ["Please choose one of the options below.", "Please tap one of the options below, or type a short answer."]
+    name: ["Hmm, that doesn't look like a name — could you type your full name?", "Sorry, I didn't catch your name. What should I call you?", "Could you share your first and last name, using letters only?"],
+    contact: ["Hmm, that doesn't look quite right — could you share a phone number or an email address?", "Sorry, I couldn't read that. A number like +1 555 123 4567 or an email like name@example.com works perfectly.", "Could you double-check your phone number or email for me?"],
+    email: ["That email still doesn't look quite right — could you check the spelling?", "Hmm, I can't read that email address. Something like name@example.com works.", "Could you type your email once more? It needs an @ and a domain, like .com."],
+    date: ["Hmm, that date doesn't work for us — could you pick one of the days below?", "Sorry, I couldn't use that date. Which other day suits you ({openDaysText})?", "Could you try another date, like “tomorrow” or “next Friday”?"],
+    time: ["Hmm, that time doesn't quite work — could you choose one of the times below?", "Sorry, that's outside our hours. Anything between {openShort} and {lastShort} works.", "Could you pick another time, like “3:30 PM”?"],
+    staff: ["Which of our {staffPlural} would you like? Just tap one above.", "Tap one of the {staffPlural} above, or “{anyStaff}” and I'll pick for you."],
+    confirm: ["Shall I go ahead and confirm it? Just reply yes, or tap “Edit details” to change anything.", "No problem — tap “Yes, confirm” to book, or “Edit details” to make changes."],
+    field: ["Could you choose one of the options below?", "Just tap one of the options below, or type a short answer."]
   };
 
   /* Words that clearly belong to OTHER industries. A bot treats these as
@@ -240,6 +282,9 @@
   .bubble a.map-btn{display:inline-flex;align-items:center;gap:6px;margin-top:8px;background:var(--amber-soft);border:1px solid var(--amber-line);padding:7px 12px;border-radius:12px;text-decoration:none;font-size:13.5px}
   .bubble a.map-btn:hover{background:rgba(${t.a1rgb},.2)}
 
+  .bubble .cal-btn{display:inline-flex;align-items:center;gap:6px;margin-top:10px;background:var(--amber-soft);border:1px solid var(--amber-line);color:var(--amber);font:500 13.5px/1 inherit;font-family:inherit;padding:10px 14px;border-radius:12px;cursor:pointer;min-height:40px;transition:background .2s}
+  .bubble .cal-btn:hover{background:rgba(${t.a1rgb},.22)}
+  .msg.user time .seen{color:var(--mint)}
   .typing .bubble{display:flex;gap:5px;align-items:center;padding:14px 16px}
   .typing .bubble span{width:7px;height:7px;border-radius:50%;background:var(--amber);animation:bsDot 1.2s infinite ease-in-out}
   .typing .bubble span:nth-child(2){animation-delay:.15s}
@@ -415,6 +460,7 @@
     const words = n.split(" ").filter((w) => /^[a-z]+$/.test(w));
     return words.length > 0 && words.filter(isGibberishWord).length >= Math.ceil(words.length / 2);
   }
+  const EMAIL_RE = /[a-z0-9._%+-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}/i;
   const PHONE_RE = /(?:\+\d{1,3}[\s.-]?)?\(?\b\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b|\+\d[\d\s().-]{6,}\d|\b\d{7,15}\b/;
   const EARLIEST_RE = /\b(earliest|soonest|asap|as soon as possible|first available|next available)\b/;
   const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
@@ -433,7 +479,7 @@
   const FEE_RE = /\b(cheap|cheaper|cheapest|cost|costs|price|prices|fee|fees|charge|charges|expensive|affordable)\b/;
   const AVAIL_WORDS_RE = /\b(available|availability|free|working|work|works|in on|there|when|days?|schedule|hours)\b/;
 
-  const NAME_INTRO_RE = /\b(my name is|my name's|name is|name's|name:|this is|call me|i am|i'm|im|it's|its|name to)\s+([a-zÀ-ɏ][a-zÀ-ɏ'.-]*(?:\s+[a-zÀ-ɏ][a-zÀ-ɏ'.-]*){0,3})/i;
+  const NAME_INTRO_RE = /\b(my name is|my name's|name is|name's|name:|this is|call me|i am|i'm|im|it's|its|name to)[ \t]+([a-zÀ-ɏ][a-zÀ-ɏ'.-]*(?:[ \t]+[a-zÀ-ɏ][a-zÀ-ɏ'.-]*){0,3})/i;   // a name never runs onto the next line
   const WEAK_INTRO = new Set(["this is", "i am", "i'm", "im", "it's", "its"]);
   const NAME_STOP = new Set(("and my phone number num mobile cell contact is at on for by of tomorrow today tonight morning afternoon evening next this " +
     "i want need would like please the a an to book booking appointment from with calling here but so can could also or dr doctor " +
@@ -443,7 +489,7 @@
     "hurting asking wondering planning coming booking thinking glad happy sad tired late on at from with your pain pregnant vegetarian vegan allergic hungry").split(" "));
   const NOT_A_NAME = new Set(("yes yeah yep no nope ok okay hello hi hey thanks thank test testing name idk none nothing nobody anonymous what why how who " +
     "book booking appointment dentist doctor please sure cancel stop help lol hmm maybe unknown user patient me myself my is the a an and " +
-    "number phone at on for to in of it its i im any anyone same free").split(" "));
+    "number phone at on for to in of it its i im any anyone same free want need like wanna would could should maybe around something anything please pls too also just really yeah sure okay booking book hello thanks cool great nice good fine").split(" "));
 
   /* =====================================================================
      createBot — builds one chatbot from one config
@@ -456,8 +502,9 @@
     const noun = BK.noun || "appointment";
     const STAFF = ST ? ST.list : [];
     const FIELDS = BK.fields || {};
-    const BOOK_STEPS = BK.steps || ["name", "phone", "date", "time"];
-    const RESCHED_STEPS = BK.rescheduleSteps || ["name", "phone", "date", "time"];
+    const toContact = (k) => (k === "phone" ? "contact" : k);
+    const BOOK_STEPS = (BK.steps || ["name", "contact", "date", "time"]).map(toContact);
+    const RESCHED_STEPS = (BK.rescheduleSteps || ["name", "contact", "date", "time"]).map(toContact);
 
     /* ---------- Opening hours (per weekday) ---------- */
     const H = CONFIG.hours;
@@ -538,6 +585,14 @@
     const OFFTOPIC = new Set((BOT.offTopicWords || []).map(stem));
     INDUSTRY_WORDS.forEach((w) => { const t = tokenize(w); if (t.length === 1 && !OWN.has(t[0])) OFFTOPIC.add(t[0]); });
     const OFFTOPIC_PHRASES = kwList(INDUSTRY_WORDS.filter((w) => w.includes(" ") && !tokenize(w).every((x) => OWN.has(x))));
+    // Vocabulary that can never be a person's name: every keyword this bot knows (except staff names),
+    // other industries' words and common request words
+    const STAFF_NAMES = new Set(STAFF_LIST.flatMap((s) => [s.first, s.last]));
+    const FUNCTION_WORDS = new Set("a an the is are am be do does did i me my you your we our to of in on at for and or with it this that what how when where who why can could would should will have has".split(" "));
+    const VOCAB = new Set([...OWN, ...INDUSTRY_WORDS.flatMap(tokenize),
+      ..."appointment appointments booking bookings book service services surgery surgical operation treatment session visit consult checkup please thanks".split(" ").map(stem)]
+      .filter((w) => w.length > 2 && !STAFF_NAMES.has(w) && !FUNCTION_WORDS.has(w)));
+    const isVocab = (t) => VOCAB.has(t) || VOCAB.has(stem(t));
     const NON_ANSWER = new Set(["book", "reschedule", "greeting", "thanks", "bye"]);
     const PRIORITY = INTENTS.filter((i) => i.priority).sort((a, b) => a.priority - b.priority);
 
@@ -632,6 +687,10 @@
       if ((m = s.match(/\bday after tomorrow\b/))) return { match: m[0], date: addDays(t, 2) };
       if ((m = s.match(/\b(tomorrow|tmrw|tmr|tomorow|tommorow|tommorrow|tomorro|2morrow)\b/))) return { match: m[0], date: addDays(t, 1) };
       if ((m = s.match(/\b(today|tonight)\b/))) return { match: m[0], date: t };
+      if ((m = s.match(/\b(this|next|coming)?\s*weekend\b/))) {             // "this weekend" → the next open Saturday/Sunday
+        const skip = m[1] === "next" && (t.getDay() === 6 || t.getDay() === 0) ? 2 : 0;
+        for (let i = skip; i < 14; i++) { const d = addDays(t, i); if ((d.getDay() === 6 || d.getDay() === 0) && isOpenDay(d)) return { match: m[0], date: d }; }
+      }
       if ((m = s.match(/\b(yesterday|day before yesterday|last (?:week|month|sunday|monday|tuesday|wednesday|thursday|friday|saturday))\b/))) return { match: m[0], error: "past" };
       if ((m = s.match(WEEKDAY_RE))) {
         let diff = (DAY_NUM[m[2]] - t.getDay() + 7) % 7;
@@ -702,12 +761,22 @@
     // Custom booking fields (guests, property, service, class…)
     function findChoice(field, tokens, low, lenient) {
       let best = null, bestScore = 0;
+      const hits = [];
       (field.options || []).forEach((o, i) => {
         let score = 0;
-        [o.label, ...(o.match || [])].forEach((p) => { const w = tokenize(p); if (w.length && (w.length > 1 ? phraseMatch(tokens, w) : tokens.some((t) => wordMatch(t, w[0])))) score += w.length; });
+        // single words: exact / prefix / one typo only ("something" must not become "smoothing")
+        const strictMatch = (t, kw) => t === kw || (kw.length >= 4 && t.startsWith(kw) && t.length - kw.length <= 3) || (kw.length >= 6 && Math.abs(t.length - kw.length) <= 1 && editDistance(t, kw) <= 1);
+        [o.label, ...(o.match || [])].forEach((p) => { const w = tokenize(p); if (w.length && (w.length > 1 ? phraseMatch(tokens, w) : tokens.some((t) => strictMatch(t, w[0])))) score += w.length; });
         if (lenient && new RegExp(`^\\s*${i + 1}\\s*$`).test(low)) score += 5;
+        if (score > 0) hits.push(o);
         if (score > bestScore) { best = o; bestScore = score; }
       });
+      // Fields that allow several choices (salon services, several properties / classes) return them all,
+      // in the order the customer mentioned them
+      if (field.multi && hits.length > 1) {
+        const pos = (o) => Math.min(...[o.label, ...(o.match || [])].map((p) => { const i = low.indexOf(p.toLowerCase()); return i < 0 ? 1e9 : i; }));
+        return hits.sort((x, y) => pos(x) - pos(y));
+      }
       return best;
     }
     function findNumber(field, s, lenient) {
@@ -732,6 +801,9 @@
       }
       const tokens = tokenize(clean);
       if (hasAny(tokens, URGENT) || hasAny(tokens, FEAR) || hasAny(tokens, TOPIC)) return false;
+      // Service / request words ("appointment", "cleaning", "surgery", "haircut"…) are never a name,
+      // and a name can't start with one ("And Surgery", "Cleaning Please")
+      if (isVocab(tokens[0]) || (tokens.length === 1 && isVocab(tokens[0]))) return false;
       const isTopic = (toks, min) => INTENTS.some((i) => i.id !== (ST && ST.intent) && scoreIntent(toks, i) >= min);
       if (!isTopic(tokens, 3)) return true;
       // A surname may match a topic ("Lina Park", "Omar Khan") — accept if the first name itself is clearly not a topic
@@ -757,12 +829,20 @@
       const e = { fields: {} };
       const cut = (m) => { rest = rest.replace(m, " "); };
 
+      // Contact: email and/or phone (either can come first, both can be in one message)
+      const em = rest.match(EMAIL_RE);
+      if (em) { e.email = em[0]; cut(em[0]); }
+      else if (/[^\s@]+@\S*/.test(rest) || (step === "contact" && (/\b[a-z0-9._-]+\.(com|net|org|co|io|edu)\b/.test(rest) ||
+        /^\s*[a-z0-9._-]+\s+at\s+[a-z0-9.-]+(\s+dot\s+[a-z]+)?\s*$/.test(rest)))) e.emailError = true;                  // "omar at mail"
       const pm = rest.match(PHONE_RE);
       if (pm) { e.phone = pm[0].trim().replace(/^\((?=[^)]*$)/, ""); cut(pm[0]); }
-      else if (step === "phone") {
-        const digits = text.replace(/\D/g, "");
-        if (digits.length >= 7 && digits.length <= 15 && !/[a-z]{3,}/i.test(text)) { e.phone = text.trim(); rest = " "; }
+      else if (step === "contact") {
+        const digits = rest.replace(/\D/g, "");
+        if (digits.length >= 7 && digits.length <= 15 && !/[a-z]{3,}/i.test(rest)) { e.phone = rest.trim().replace(/^[^\d+(]+|[^\d)]+$/g, ""); rest = " "; }
+        else if (digits.length >= 3 && !e.email && !/\b(am|pm|guests?|people)\b/.test(rest)) e.phoneError = true;
       }
+      if (/\b(use|prefer|only|just)\b[^.\n]*\be ?mail\b|\be ?mail instead\b|\binstead\b[^.\n]*\be ?mail\b|\b(contact|reach) me (by|via|on) e ?mail\b/.test(rest)) e.contactPref = "email";
+      else if (/\b(use|prefer|only|just)\b[^.\n]*\b(phone|number|mobile|cell)\b|\b(phone|number) instead\b|\binstead\b[^.\n]*\b(phone|number)\b|\bcall me instead\b/.test(rest)) e.contactPref = "phone";
       // Number fields first ("table for 4") so the number isn't mistaken for a date or time
       for (const [id, f] of Object.entries(FIELDS)) {
         if (f.type !== "number") continue;
@@ -798,7 +878,16 @@
         if (o) e.fields[id] = o;
       }
 
-      const nm = findName(text);
+      let nm = findName(text);
+      // A name split over quick messages ("my name" / "is Lily Tan") — contact details are already removed from `rest`
+      if (!nm && text.includes("\n")) nm = findName(rest.replace(/\s+/g, " "));
+      // Several quick messages: a line that is just a name ("humayun") is the name — service words never are
+      if (!nm && text.includes("\n")) {
+        for (const line of text.split("\n")) {
+          const l = stripIntro(line.trim());
+          if (l && l.split(/\s+/).length <= 3 && !/[\d@?]/.test(l) && !findDate(" " + l.toLowerCase() + " ") && nameValid(l)) { nm = titleCase(l); break; }
+        }
+      }
       if (nm) {
         e.name = nm;
         // "My name is Sarah Khan" is the customer, not the staff member
@@ -808,7 +897,7 @@
       return e;
     }
     const hasFields = (e) => Object.keys(e.fields || {}).length > 0;
-    const hasCore = (e) => !!(e.name || e.phone || e.date || e.dateError || e.time != null || e.timeError || e.staff || e.anyStaff || e.earliest || hasFields(e));
+    const hasCore = (e) => !!(e.name || e.phone || e.email || e.emailError || e.phoneError || e.contactPref || e.date || e.dateError || e.time != null || e.timeError || e.staff || e.anyStaff || e.earliest || hasFields(e));
     const hasData = (e) => hasCore(e) || !!e.part;
 
     // Free-text field filled from the topic of a message (dental: "book a cleaning" → reason "Teeth cleaning")
@@ -816,7 +905,9 @@
       const out = {};
       for (const [id, f] of Object.entries(FIELDS)) {
         if (f.type !== "text" || !f.fromIntents) continue;
-        const found = (f.fromIntents.find(([iid]) => sc(a, iid) >= 3) || [])[1] || null;
+        // every service mentioned counts: "cleaning and surgery" → "Teeth cleaning + Oral surgery"
+        const all = [...new Set(f.fromIntents.filter(([iid]) => sc(a, iid) >= 3).map(([, label]) => label))];
+        const found = all.length ? all.join(" + ") : null;
         if (f.childIntent && sc(a, f.childIntent) >= 3) out[id] = found && found !== f.childDefaultFrom ? `${found} (child)` : f.childLabel;
         else if (found) out[id] = found;
       }
@@ -824,12 +915,23 @@
     }
 
     // Multi-person bookings: "me and my wife", "my husband and I", "both of us"
-    function multiPerson(n) {
-      const m = n.match(/\b(?:me and my|myself and my)\s+(wife|husband|partner|son|daughter|kid|child|mother|mom|mum|father|dad|brother|sister|friend)\b/) ||
-                n.match(/\bmy\s+(wife|husband|partner|son|daughter|mother|mom|mum|father|dad|brother|sister|friend)\s+and\s+(?:me|i|myself)\b/);
-      if (m) return "your " + m[1];
-      return /\b(both of us|two of us|for us both|two appointments|2 appointments)\b/.test(n) ? "the second person" : null;
+    // Returns { count, who: [labels for booking 2, 3, …] } — count null means "ask how many".
+    const ORDINALS = ["second", "third", "fourth", "fifth", "sixth"];
+    const ORDINAL_WHO = BK.multiPerson === false ? ORDINALS.map((o) => `your ${o} ${noun}`) : ORDINALS.map((o) => `the ${o} person`);
+    function multiInfo(n) {
+      const rel = BK.multiPerson !== false && (
+        n.match(/\b(?:me and my|myself and my|for my|and my)\s+(wife|husband|partner|son|daughter|kid|child|mother|mom|mum|father|dad|brother|sister|friend|colleague)\b/) ||
+        n.match(/\bmy\s+(wife|husband|partner|son|daughter|mother|mom|mum|father|dad|brother|sister|friend)\s+and\s+(?:me|i|myself)\b/));
+      const units = BK.multiUnits || "appointments|bookings|slots|people|persons|of us|friends|kids|children";
+      const m = n.match(new RegExp(`\\b${NUM}\\s+(?:${units})\\b`)) || (BK.multiPerson !== false && n.match(new RegExp(`\\b(?:book|for)\\s+${NUM}\\s+(?:people|persons)\\b`)));
+      const count = m ? Math.min(toNum(m[1]) || 0, 6) : 0;
+      if (count >= 2) return { count, who: ORDINAL_WHO.slice(0, count - 1).map((w, i) => (i === 0 && rel ? "your " + rel[1] : w)) };
+      if (rel) return { count: 2, who: ["your " + rel[1]] };
+      if (BK.multiPerson !== false && /\b(both of us|two of us|for us both)\b/.test(n)) return { count: 2, who: ["the second person"] };
+      if (BK.multiPerson !== false && /\b(me and my family|for my family|for the family|whole family|family booking|group booking|for a few people|several people|multiple appointments|more than one)\b/.test(n)) return { count: null, who: [] };
+      return null;
     }
+    const multiPerson = (n) => multiInfo(n);
 
     /* =====================================================================
        AVAILABILITY
@@ -911,7 +1013,7 @@
             <div class="bot-avatar">${icon(TH.icon, 23)}</div>
             <div class="who"><span class="name">${esc(BOT.name)}</span><span class="status"><i></i>${esc(T.online)}</span></div>
             ${opts.onSwitch ? `<button class="head-btn switch" title="${esc(T.switchIndustry)}" aria-label="${esc(T.switchIndustry)}">${icon("grid", 17)}</button>` : ""}
-            <button class="head-btn restart" title="Restart conversation" aria-label="Restart conversation">${icon("refresh", 17)}</button>
+            <button class="head-btn restart" title="Start new chat" aria-label="Start new chat">${icon("refresh", 17)}</button>
             <button class="head-btn close" title="Close" aria-label="Close chat">${icon("close", 18)}</button>
           </div>
           <div class="chat-body" aria-live="polite"></div>
@@ -936,6 +1038,7 @@
     /* =====================================================================
        CHAT UI
        ===================================================================== */
+    const TEST = { speed: 1, batchMs: BK.batchMs || 4000, tapMs: 1200 };  // wait after the last message / keystroke (tunable for tests)
     function scrollDown() { chatBody.scrollTop = chatBody.scrollHeight; }
     function addMessage(role, html) {
       const row = document.createElement("div");
@@ -945,19 +1048,27 @@
       chatBody.appendChild(row);
       scrollDown();
       if (role === "bot" && !isOpen()) setUnread(unread + 1);
+      saveState();
+      return row;
     }
     function setChips(list = []) {
       chipsEl.innerHTML = "";
       list.forEach((label) => {
         const b = document.createElement("button");
         b.type = "button"; b.className = "chip"; b.textContent = label;
-        b.onclick = () => sendUser(label);
+        b.onclick = () => sendUser(label, true);
         chipsEl.appendChild(b);
       });
       scrollDown();
+      saveState();
     }
-    // Cards inside messages are clickable
-    chatBody.addEventListener("click", (ev) => { const el = ev.target.closest("[data-send]"); if (el) sendUser(el.getAttribute("data-send")); });
+    // Cards and buttons inside messages are clickable
+    chatBody.addEventListener("click", (ev) => {
+      const cal = ev.target.closest("[data-ics]");
+      if (cal) return downloadIcs(cal.getAttribute("data-ics"));
+      const el = ev.target.closest("[data-send]");
+      if (el) sendUser(el.getAttribute("data-send"), true);
+    });
 
     // Queue bot replies so they appear one after another with a typing indicator.
     function bot(html, chips) {
@@ -969,7 +1080,7 @@
         t.innerHTML = `<div class="mini-av">${icon(TH.icon, 15)}</div><div class="col"><div class="bubble"><span></span><span></span><span></span></div></div>`;
         chatBody.appendChild(t); scrollDown();
         const plain = html.replace(/<[^>]+>/g, "");
-        const delay = 450 + Math.min(plain.length * 9, 1000) + Math.random() * 250;
+        const delay = (450 + Math.min(plain.length * 9, 1000) + Math.random() * 250) * TEST.speed;
         setTimeout(() => {
           t.remove();
           if (mySession === session && !destroyed) { addMessage("bot", html); if (chips) setChips(chips); }
@@ -978,14 +1089,122 @@
       }));
       return queue;
     }
-    function sendUser(text) {
+
+    /* ---------- Several messages in a row → ONE combined reply ----------
+       Every message (and every keystroke) restarts a short wait; when the
+       customer pauses, all their messages are answered together. */
+    let pending = [], batchTimer = null;
+    const pendingRows = [];
+    function sendUser(text, immediate) {
       text = String(text).trim();
       if (!text) return;
-      addMessage("user", esc(text));
+      pendingRows.push(addMessage("user", esc(text)));
+      pending.push(text);
       setChips([]);
       input.value = "";
-      if (Flow.active) handleFlow(text); else respond(text);
+      scheduleFlush(immediate ? TEST.tapMs : TEST.batchMs);    // never reply instantly: wait until the customer pauses
     }
+    function scheduleFlush(ms) {
+      clearTimeout(batchTimer);
+      batchTimer = setTimeout(() => { if (!destroyed) flush(); }, ms);
+      saveState();
+    }
+    function flush() {
+      if (!pending.length) return;
+      const combined = normalizeSlang(pending.join("\n"));
+      pending = [];
+      pendingRows.splice(0).forEach((row) => {           // small "Seen" tick under the customer's messages
+        const t = row.querySelector("time");
+        if (t && !t.querySelector(".seen")) t.insertAdjacentHTML("beforeend", ` · <span class="seen">Seen ✓</span>`);
+      });
+      if (Flow.active) handleFlow(combined); else respond(combined);
+      saveState();
+    }
+    // Still typing → keep waiting (every keystroke restarts the timer)
+    ["input", "keydown", "compositionupdate"].forEach((ev) => input.addEventListener(ev, () => { if (pending.length) scheduleFlush(TEST.batchMs); }));
+
+    // Slang & short forms → plain English before understanding the message
+    const SLANG = [
+      [/\b(tmrw|tmr|tmrrw|tmrow|2moro|2morrow|tomoz|tommorow|tomorow)\b/gi, "tomorrow"], [/\btdy\b/gi, "today"], [/\b(pls|plz|plse|pleeze)\b/gi, "please"],
+      [/\bu\b/gi, "you"], [/\bur\b/gi, "your"], [/\br\b/gi, "are"], [/\b(appt|apptmt|appnt)\b/gi, "appointment"], [/\beve\b/gi, "evening"],
+      [/\bnite\b/gi, "night"], [/\b(thx|thnx|thanx|tnx|ty)\b/gi, "thanks"], [/\bwanna\b/gi, "want to"], [/\bgonna\b/gi, "going to"],
+      [/\bgimme\b/gi, "give me"], [/\babt\b/gi, "about"], [/\bhrs\b/gi, "hours"], [/\bmins\b/gi, "minutes"], [/\bppl\b/gi, "people"],
+      [/\b(wknd|wkend)\b/gi, "weekend"], [/\bhv\b/gi, "have"], [/\bbday\b/gi, "birthday"], [/\b(rsvp|rez|resv)\b/gi, "reservation"],
+      [/\bw\/\s*/gi, "with "], [/\bdr\b(?!\.)/gi, "Dr"], [/\bnxt\b/gi, "next"], [/\bmrng\b/gi, "morning"], [/\baftn\b/gi, "afternoon"], [/\bidk\b/gi, "I don't know"]
+    ];
+    const normalizeSlang = (s) => SLANG.reduce((acc, [re, to]) => acc.replace(re, to), s);
+
+    /* ---------- "Add to Calendar" (.ics download) ---------- */
+    function downloadIcs(id) {
+      const rec = SESSION.bookings.find((r) => String(r.id) === String(id));
+      if (!rec || !rec.ics) return;
+      const pad = (n) => String(n).padStart(2, "0");
+      const [y, mo, da] = rec.ics.date.split("-").map(Number);
+      const start = new Date(y, mo - 1, da, Math.floor(rec.ics.time / 60), rec.ics.time % 60);
+      const end = new Date(start.getTime() + (rec.ics.duration || 60) * 60000);
+      const stamp = (d) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
+      const clean = (s) => String(s).replace(/[\\;,]/g, (c) => "\\" + c).replace(/\n/g, "\\n");
+      const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Demo Chatbot//EN", "BEGIN:VEVENT",
+        `UID:${rec.id}@demo-chatbot`, `DTSTAMP:${stamp(new Date())}`, `DTSTART:${stamp(start)}`, `DTEND:${stamp(end)}`,
+        `SUMMARY:${clean(rec.ics.title)}`, `LOCATION:${clean(rec.ics.location)}`, `DESCRIPTION:${clean(rec.ics.description)}`,
+        "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
+      a.download = `${B.name.replace(/[^a-z0-9]+/gi, "-")}-${rec.ics.date}.ics`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    }
+
+    /* ---------- Chat saved for the visit (survives a page refresh) ---------- */
+    const SAVE_KEY = "demochatbot_chat_" + (CONFIG.id || "default");
+    let restoring = false;
+    function serData(d) {
+      const out = {};
+      for (const [k, v] of Object.entries(d)) {
+        if (v instanceof Date) out[k] = { __d: v.toISOString() };
+        else if (k === "staff" && v) out[k] = { __s: v.id };
+        else if (FIELDS[k] && Array.isArray(v)) out[k] = { __oa: v.map((o) => o.id) };
+        else if (FIELDS[k] && v && typeof v === "object") out[k] = { __o: v.id };
+        else out[k] = v;
+      }
+      return out;
+    }
+    function deserData(d) {
+      const out = {};
+      for (const [k, v] of Object.entries(d || {})) {
+        if (v && v.__d) out[k] = new Date(v.__d);
+        else if (v && v.__s) out[k] = STAFF_LIST.find((s) => s.id === v.__s) || null;
+        else if (v && v.__o) out[k] = (FIELDS[k].options || []).find((o) => o.id === v.__o) || null;
+        else if (v && v.__oa) out[k] = v.__oa.map((id) => (FIELDS[k].options || []).find((o) => o.id === id)).filter(Boolean);
+        else out[k] = v;
+      }
+      return out;
+    }
+    function saveState() {
+      if (restoring || destroyed) return;
+      try {                                              // (also guards the very first calls, before the booking state exists)
+        const html = [...chatBody.children].filter((el) => !el.classList.contains("typing")).map((el) => el.outerHTML).join("");
+        sessionStorage.setItem(SAVE_KEY, JSON.stringify({
+          html, chips: [...chipsEl.children].map((b) => b.textContent), open: isOpen(), started, pending,
+          flow: { ...Flow, data: serData(Flow.data), asked: [...Flow.asked] }, session: SESSION
+        }));
+      } catch (err) { /* storage unavailable — ignore */ }
+    }
+    function restoreState() {
+      let s;
+      try { s = JSON.parse(sessionStorage.getItem(SAVE_KEY)); } catch (err) { s = null; }
+      if (!s || !s.started || !s.html) return false;
+      restoring = true;
+      chatBody.innerHTML = s.html;
+      setChips(s.chips || []);
+      Object.assign(Flow, s.flow, { data: deserData(s.flow.data), asked: new Set(s.flow.asked || []) });
+      Object.assign(SESSION, s.session || {});
+      started = true;
+      restoring = false;
+      if (s.pending && s.pending.length) { pending = s.pending; scheduleFlush(300); }
+      return s.open ? "open" : "closed";
+    }
+    function clearState() { try { sessionStorage.removeItem(SAVE_KEY); } catch (err) { /* ignore */ } }
 
     /* =====================================================================
        ANSWERS — priority: urgent → priority topics (medical…) → fear →
@@ -1109,12 +1328,14 @@
         const lead = svc.length && DO_YOU_RE.test(n) ? answerHtml(svc[0]) + "<br><br>" : "";   // "do you do X and does it hurt?"
         return { html: lead + fearHtml(a), chips: CONFIG.fear.chips || [] };
       }
+      let optLead = "";
       // A question about one specific option (a property, class or service) → that option's details
       // (unless it's really about the staff: "which trainer is best for boxing?")
       const opt = Object.values(e.fields || {}).find((v) => v && typeof v === "object" && v.info);
       if (opt && a.question && !(ST && ((s[ST.intent] || 0) >= 3 || (/\bwho\b/.test(n) && specialistFor(s))))) {
         const others = INTENTS.filter((i) => !NON_ANSWER.has(i.id) && !(BOT.optionIntents || []).includes(i.id) && s[i.id] >= 3);
         if (!others.length) return { html: fill(opt.info), chips: opt.chips || [BOT.quickReplies[0]] };
+        optLead = fill(opt.info) + "<br><br>";               // also asked something else → details first, then the other answer
       }
       if (ST) {
         const staffScore = s[ST.intent] || 0;
@@ -1153,7 +1374,7 @@
       (BOT.overlaps || []).forEach(([keep, drop]) => { if (ids.includes(keep)) ids = ids.filter((id) => id !== drop); });
       if (!ids.length) return null;
       ids = ids.slice(0, 3);
-      return { html: ids.map(answerHtml).join("<br><br>"), chips: intentById[ids[0]].chips || BOT.quickReplies };
+      return { html: optLead + ids.map(answerHtml).join("<br><br>"), chips: intentById[ids[0]].chips || BOT.quickReplies };
     }
 
     /* ---------- "What did I book?" ---------- */
@@ -1213,22 +1434,36 @@
 
       if (a.urgent) return bot(ans.html, ans.chips);                             // emergencies always first
       if (MY_BOOKING_RE.test(a.n)) return showMyBookings(defaults);
+
+      // Conversation wrap-up after a booking: "no" / "thanks" / "bye" → one warm goodbye, then no more questions
+      if (SESSION.phase) {
+        const closingWords = (s.bye || 0) >= 3 || (s.thanks || 0) >= 3 || /^(no|nope|nah|not really|nothing|nothing else|no thanks|no thank you|thats all|thats it|all good|im good|im fine|all set|no thats all|no thats it)\b/.test(a.n);
+        if (closingWords && !hasCore(e) && maxAnswerScore(a) < 3 && !a.question) {
+          const first = SESSION.lastName;
+          const lines = T.goodbyes.split("|");
+          const html = SESSION.phase === "closed" ? ((s.bye || 0) >= 3 ? (first ? `Bye for now, ${esc(first)}! 👋` : "Bye for now! 👋") : tx("welcomeBack")) : first ? fill(lines[Math.floor(Math.random() * lines.length)], { first: esc(first) }) : tx("goodbyeNoName");
+          SESSION.phase = "closed";
+          return bot(html);
+        }
+        if (SESSION.phase === "askedElse" && /^(yes|yeah|yep|sure|yes please|actually yes)$/.test(a.n)) { SESSION.phase = null; return bot(tx("yesAfter"), defaults); }
+        SESSION.phase = null;                                                    // they asked something new → carry on normally
+      }
       if (a.offTopic && !a.onTopic && maxAnswerScore(a) < 3 && !hasFields(e)) return outOfScope();
-      if ((s.reschedule || 0) >= 3) return startFlow("reschedule", e);
+      if ((s.reschedule || 0) >= 3 && !((s.cancelPolicy || 0) >= 3)) return startFlow("reschedule", e);   // "cancellation policy?" is a question, not a cancellation
       if (ans && ans.info && (s.book || 0) < 3) return bot(ans.html, ans.chips);   // availability / opening-day questions
 
       const multi = multiPerson(a.n);
-      const coreNoFields = !!(e.name || e.phone || e.date || e.dateError || e.time != null || e.timeError || e.staff || e.anyStaff || e.earliest);
-      const wantsBooking = (s.book || 0) >= 3 || e.earliest || multi || ((s.book || 0) >= 1 && (core || !ans)) ||
-        (coreNoFields && (!a.question || !ans || e.time != null || e.timeError || e.phone)) ||
+      const coreNoFields = !!(e.name || e.phone || e.email || e.date || e.dateError || e.time != null || e.timeError || e.staff || e.anyStaff || e.earliest);
+      const wantsBooking = (s.book || 0) >= 3 || e.earliest || multi || ((s.book || 0) >= 1 && (core || !ans) && !(a.question && ans)) ||
+        (coreNoFields && (!a.question || !ans || e.time != null || e.timeError || e.phone || e.email)) ||
         (hasFields(e) && !ans);                                                     // "Facial" alone → info, "a facial tomorrow" → booking
       if (wantsBooking) {
         Object.entries(textFieldFrom(a)).forEach(([id, v]) => { if (e.fields[id] == null) e.fields[id] = v; });
-        if (multi && BK.multiPerson === false) {                                   // restaurant: "me and my wife" = 2 guests
+        if (BK.multiPerson === false && /\b(me and my|my (wife|husband|partner|friend|date) and (me|i))\b/.test(a.n)) {   // restaurant: "me and my wife" = a table for 2
           const nf = Object.keys(FIELDS).find((id) => FIELDS[id].type === "number");
           if (nf && e.fields[nf] == null) e.fields[nf] = 2;
         }
-        return startFlow("book", e, { multi: BK.multiPerson === false ? null : multi });
+        return startFlow("book", e, { multi, greeted: (s.greeting || 0) >= 3 });
       }
 
       if (ans) return bot(ans.html, ans.chips);
@@ -1247,18 +1482,18 @@
        ===================================================================== */
     const Flow = { active: null, step: null, data: {}, earliest: false, recNoted: false, pending: [], prevPhone: null, asked: new Set(), failField: null, failCount: 0 };
     const CONFIRM_CHIPS = ["✅ Yes, confirm", "✏️ Edit details", "✖ Cancel"];
-    const SUMMARY = BK.summary || ["name", "phone", "date", "time", ...(ST ? ["staff"] : []), ...Object.keys(FIELDS)];
-    const labelOf = (k) => (k === "name" ? "Name" : k === "phone" ? "Phone" : k === "date" ? "Date" : k === "time" ? "Time" : k === "staff" ? ST.label : FIELDS[k].label);
-    const EDIT_CHIPS = BK.editChips || SUMMARY.filter((k) => k !== "staff" || BOOK_STEPS.includes("staff")).map(labelOf);
+    const SUMMARY = (BK.summary || ["name", "contact", "date", "time", ...(ST ? ["staff"] : []), ...Object.keys(FIELDS)]).map(toContact);
+    const labelOf = (k) => (k === "name" ? "Name" : k === "contact" ? "Contact" : k === "date" ? "Date" : k === "time" ? "Time" : k === "staff" ? ST.label : FIELDS[k].label);
+    const EDIT_CHIPS = (BK.editChips || []).map((c) => (c === "Phone" ? "Contact" : c)).filter(Boolean).length ? BK.editChips.map((c) => (c === "Phone" ? "Contact" : c)) : SUMMARY.filter((k) => k !== "staff" || BOOK_STEPS.includes("staff")).map(labelOf);
     const recStaff = (d) => (d.recId ? STAFF_LIST.find((x) => x.id === d.recId) : null);
     const stepsOf = () => (Flow.active === "book" ? BOOK_STEPS : RESCHED_STEPS);
     const chosenOption = (d) => { for (const id of Object.keys(FIELDS)) { const v = d[id]; if (v && typeof v === "object" && (v.days || v.times)) return v; } return null; };
-    const fieldValueText = (id, v) => (v == null ? "" : typeof v === "object" ? v.label : FIELDS[id] && FIELDS[id].display ? FIELDS[id].display.replace("{value}", v) : String(v));
+    const fieldValueText = (id, v) => (v == null ? "" : Array.isArray(v) ? v.map((o) => o.label).join(" + ") : typeof v === "object" ? v.label : FIELDS[id] && FIELDS[id].display ? FIELDS[id].display.replace("{value}", v) : String(v));
 
     function nextStep() {
       const d = Flow.data;
       if (d.cancelOnly) return "submit";
-      const missing = stepsOf().find((k) => d[k] == null);
+      const missing = stepsOf().find((k) => (k === "contact" ? (!d.phone && !d.email) || (Flow.contactWant === "both" && !(d.phone && d.email)) : d[k] == null));
       return missing || (Flow.active === "book" ? "confirm" : "submit");
     }
     function dateChips() {
@@ -1295,7 +1530,8 @@
       if (step === "date") return dateChips();
       if (step === "time") return timeChips(d.date, d.part, d.staff);
       if (step === "staff") return [fill("{anyStaff}")];
-      if (step === "phone") return Flow.prevPhone ? [`Same number (${Flow.prevPhone})`] : [];
+      if (step === "name") return Flow.prev && Flow.prev.name ? [`${T.samePerson} (${Flow.prev.name})`] : [];
+      if (step === "contact") return Flow.prevPhone ? [`Same contact (${Flow.prevPhone})`] : d.phone || d.email || Flow.contactWant ? [] : ["Phone", "Email", "Both"];
       if (step === "confirm") return CONFIRM_CHIPS;
       if (step === "editPick") return EDIT_CHIPS;
       const f = FIELDS[step];
@@ -1318,8 +1554,11 @@
         case "name":
           html = short ? tx("askNameShort") : book ? tx("askName") : tx("askNameResched");
           break;
-        case "phone":
-          html = short || !first ? tx("askPhoneShort") : book ? tx("askPhone", { first }) : tx("askPhoneResched", { first });
+        case "contact":
+          html = Flow.contactWant === "both" && d.phone && !d.email ? tx("askOtherEmail")
+            : Flow.contactWant === "both" && d.email && !d.phone ? tx("askOtherPhone")
+            : Flow.contactWant === "phone" ? tx("askPhoneOnly") : Flow.contactWant === "email" ? tx("askEmailOnly") : Flow.contactWant === "both" ? tx("askBoth")
+            : short || !first ? tx("askContactShort") : book ? tx("askContact", { first }) : tx("askContactResched", { first });
           break;
         case "date":
           html = short ? (book ? tx("askDateShort") : tx("askDateReschedShort"))
@@ -1348,6 +1587,10 @@
         case "confirm":
           html = summaryCard(d) + tx("confirmQ");
           break;
+        case "count":
+          html = tx("askCount", { nouns: nounPlural });
+          chips = ["2", "3", "4"];
+          break;
         default: {
           const f = FIELDS[step];
           html = fill(short && f.shortPrompt ? f.shortPrompt : f.prompt);
@@ -1364,30 +1607,46 @@
           if (k === "date") return row("Date", fmtDate(d.date));
           if (k === "time") return row("Time", timeLabel(d.time));
           if (k === "staff") return row(ST.label, d.staff ? `${d.staff.name} (${d.staff.specialty})` : T.anyAvailable);
-          if (k === "name" || k === "phone") return row(labelOf(k), d[k]);
+          if (k === "name") return row("Name", d.name);
+          if (k === "contact") return (d.phone ? row("Phone", d.phone) : "") + (d.email ? row("Email", d.email) : "");
           return d[k] == null ? "" : row(labelOf(k), fieldValueText(k, d[k]));
         }).join("") + `</div>`;
     }
     function summaryRows(d) {
-      return SUMMARY.map((k) => {
+      return SUMMARY.flatMap((k) => (k === "contact" ? [["Phone", d.phone || ""], ["Email", d.email || ""]] : [k])).map((k) => {
+        if (Array.isArray(k)) return k;
         if (k === "date") return ["Date", d.date ? fmtDate(d.date) : ""];
         if (k === "time") return ["Time", d.time != null ? timeLabel(d.time) : ""];
         if (k === "staff") return [ST.label, d.staff ? `${d.staff.name} (${d.staff.specialty})` : ""];
-        if (k === "name" || k === "phone") return [labelOf(k), d[k] || ""];
+        if (k === "name") return ["Name", d.name || ""];
         return [labelOf(k), fieldValueText(k, d[k])];
       });
     }
 
     function endFlow() {
-      Object.assign(Flow, { active: null, step: null, data: {}, earliest: false, recNoted: false, pending: [], prevPhone: null, asked: new Set() });
+      Object.assign(Flow, { active: null, step: null, data: {}, earliest: false, recNoted: false, pending: [], prevPhone: null, asked: new Set(), contactWant: null, onlyContact: null,
+        group: [], prev: null, startE: null });
       resetFails();
     }
+    const nounPlural = BK.nounPlural || (noun.endsWith("s") ? noun + "es" : noun + "s");
     function startFlow(type, e = {}, o = {}) {
       endFlow();
+      Flow.group = []; Flow.prev = null;
       Flow.active = type;
-      if (o.multi) Flow.pending = [o.multi];
-      if (!hasData(e)) return askStep(stepsOf()[0], o.multi ? { prefix: tx("multiIntro") } : {});
-      return advance(applyEntities(e), { intro: true });
+      // Several options in one message (e.g. two properties, two classes) → one booking each
+      for (const [id, v] of Object.entries(e.fields || {})) {
+        if (Array.isArray(v) && FIELDS[id] && FIELDS[id].multi === "bookings") {
+          e.fields[id] = v[0];
+          Flow.pending.push(...v.slice(1).map((opt) => ({ who: opt.label, preset: { [id]: opt }, samePerson: true })));
+        }
+      }
+      if (o.multi && type === "book") {
+        if (o.multi.count == null) { Flow.startE = e; Flow.startGreeted = !!o.greeted; return askStep("count", { prefix: o.greeted ? tx("helloMidFlow") + " " : "" }); }
+        Flow.pending.push(...o.multi.who.map((who) => ({ who, samePerson: BK.multiPerson === false })));
+      }
+      const multiNote = Flow.pending.length ? tx("multiIntroN", { count: Flow.pending.length + 1, nouns: nounPlural }) : "";
+      if (!hasData(e)) return askStep(stepsOf()[0], multiNote ? { prefix: multiNote } : {});
+      return advance(applyEntities(e), { intro: true, greeted: !!o.greeted, multiNote });
     }
     function pickAnyStaff(d) {
       const list = availableStaff(d.date, d.time), rec = recStaff(d);
@@ -1413,7 +1672,15 @@
         }
       }
       if (e.name) set("name", e.name);
+      // Contact details: phone and/or email ("actually use my email instead" drops the phone)
+      if (e.contactPref) Flow.onlyContact = e.contactPref;                // "actually use my email instead"
       if (e.phone) set("phone", e.phone);
+      if (e.email) set("email", e.email);
+      if (Flow.onlyContact === "email" && d.email) { if (d.phone) { d.phone = null; if (!r.added.includes("email")) r.changed.push("contactEmailOnly"); } Flow.onlyContact = null; Flow.contactWant = null; }
+      else if (Flow.onlyContact === "phone" && d.phone) { if (d.email) { d.email = null; if (!r.added.includes("phone")) r.changed.push("contactPhoneOnly"); } Flow.onlyContact = null; Flow.contactWant = null; }
+      else if (e.contactPref && !(e.contactPref === "email" ? e.email : e.phone)) { Flow.contactWant = e.contactPref; r.ask = "contact"; }
+      if (e.emailError && !e.email) r.errors.push({ field: "contact", code: "email" });
+      else if (e.phoneError && !e.phone && !e.email) r.errors.push({ field: "contact", code: "phone" });
       if (e.dateError) r.errors.push({ field: "date", code: e.dateError, date: e.dateRaw });
       else if (e.date) set("date", e.date);
 
@@ -1430,12 +1697,18 @@
             else if (f.max && v > f.max) r.errors.push({ field: id, code: "tooBig" });
             else set(id, v);
           } else if (f.type === "choice") {
-            set(id, v);
-            if (ST && v.staff) {                                         // e.g. a property's listing agent
-              const s = STAFF_LIST.find((x) => x.id === v.staff);
+            let val = v;
+            if (Array.isArray(v) && f.multi === "bookings") {             // two properties / classes → a second booking for the rest
+              val = v[0];
+              v.slice(1).forEach((opt) => { if (!Flow.pending.some((p) => p.preset && p.preset[id] === opt)) Flow.pending.push({ who: opt.label, preset: { [id]: opt }, samePerson: true }); });
+            }
+            set(id, val);
+            const first = Array.isArray(val) ? val[0] : val;
+            if (ST && first.staff) {                                     // e.g. a property's listing agent
+              const s = STAFF_LIST.find((x) => x.id === first.staff);
               if (s && !staffStep) d.staff = s;
             }
-            if (ST && staffStep && !d.recId) { const s = STAFF_LIST.find((x) => (x.treats || []).includes(v.id)); if (s) d.recId = s.id; }
+            if (ST && staffStep && !d.recId) { const s = STAFF_LIST.find((x) => (x.treats || []).includes(first.id)); if (s) d.recId = s.id; }
           }
         }
       }
@@ -1518,6 +1791,7 @@
         const f = FIELDS[err.field];
         return fill(err.code === "tooBig" ? f.tooBig || f.invalid : f.invalid);
       }
+      if (err.field === "contact") return tx(err.code === "email" ? "emailInvalid" : "contactInvalid");
       const texts = {
         date: { impossible: "dateImpossible", past: "datePast", closed: "dateClosed", far: "dateFar", todayLate: "dateTodayLate", unclear: "dateUnclear" },
         time: { range: "timeRange", late: "timeLate", past: "timePast", unclear: "timeUnclear" }
@@ -1525,7 +1799,13 @@
       const key = (texts[err.field] || {})[err.code] || "rephrase";
       return tx(key, { weekday: err.date ? weekdayPlural(err.date) : "that day", ...hoursTokens(err.field === "time" ? d.date : null) });
     }
-    function ackText(added, intro) {
+    const whenText = (d, part) => (sameDay(d, today()) ? `today${part ? " " + (part === "evening" ? "evening" : part) : ""}` : sameDay(d, addDays(today(), 1)) ? `tomorrow${part ? " " + part : ""} (${fmtShort(d)})` : `${fmtShort(d)}${part ? " " + part : ""}`);
+    function contactAck(added) {
+      const p = added.includes("phone"), m = added.includes("email"), d = Flow.data;
+      if (!p && !m) return "";
+      return tx(d.phone && d.email ? "ackBoth" : p ? "ackPhone" : "ackEmail") + " ";
+    }
+    function ackText(added, intro, greeted) {
       const d = Flow.data, bits = [];
       const withStaff = d.staff && added.includes("staff") ? ` with <b>${esc(d.staff.name)}</b>` : "";
       let lead = "";
@@ -1534,10 +1814,10 @@
           with: d.staff ? ` with <b>${esc(d.staff.name)}</b> (${esc(d.staff.specialty)})` : "" });
         Flow.earliest = false;
       } else if (added.includes("date")) {
-        bits.push(`<b>${fmtDate(d.date)}</b>` + (added.includes("time") ? ` at <b>${timeLabel(d.time)}</b>` : d.part ? ` (${d.part})` : "") + withStaff);
+        const when = `<b>${whenText(d.date, added.includes("time") ? null : d.part)}</b>` + (added.includes("time") ? ` at <b>${timeLabel(d.time)}</b>` : "") + withStaff;
+        lead = tx(intro && Flow.active === "book" ? "bookFor" : "notedWhen", { when });
       } else if (added.includes("time")) bits.push(`<b>${timeLabel(d.time)}</b>` + withStaff);
       else if (added.includes("staff")) bits.push(`<b>${esc(d.staff.name)}</b> (${esc(d.staff.specialty)})`);
-      if (added.includes("phone")) bits.push("your phone number");
       for (const id of Object.keys(FIELDS)) {
         if (!added.includes(id)) continue;
         const f = FIELDS[id];
@@ -1546,15 +1826,19 @@
         if (f.ackLower) v = v.toLowerCase();
         bits.push(fill(f.ack || "{value}", { value: esc(v) }));
       }
-      const hi = added.includes("name") ? tx("thanksName", { first: esc(firstName(d.name)) })
-        : intro ? tx(Flow.active === "book" ? "introBook" : "introResched") : tx("great");
-      return hi + lead + (bits.length ? tx("noted", { items: joinAnd(bits) }) : "");
+      const first = d.name ? esc(firstName(d.name)) : "";
+      const hi = added.includes("name") ? (greeted ? tx("hiName", { first }) : tx("thanksName", { first }))
+        : intro && !(lead && Flow.active === "book") ? tx(Flow.active === "book" ? "introBook" : "introResched") : lead || bits.length ? "" : tx("great");
+      return hi + lead + (bits.length ? tx(lead ? "alsoNoted" : "noted", { items: joinAnd(bits) }) : "") + contactAck(added);
     }
     function changedText(changed) {
       const d = Flow.data;
       const label = (k) => {
         if (k === "name") return `your name to <b>${esc(d.name || "")}</b>`;
         if (k === "phone") return `your phone number to <b>${esc(d.phone || "")}</b>`;
+        if (k === "email") return `your email to <b>${esc(d.email || "")}</b>`;
+        if (k === "contactEmailOnly") return "your contact to <b>email only</b>";
+        if (k === "contactPhoneOnly") return "your contact to <b>phone only</b>";
         if (k === "date") return d.date ? `the date to <b>${fmtDate(d.date)}</b>` : "the date";
         if (k === "time") return d.time != null ? `the time to <b>${timeLabel(d.time)}</b>` : "the time";
         if (k === "staff") return d.staff ? `the ${ST.singular} to <b>${esc(d.staff.name)}</b>` : `the ${ST.singular}`;
@@ -1574,12 +1858,16 @@
         if (extra && extra.field === "time" && (extra.code === "range" || extra.code === "late"))
           html += " " + tx("timeAlso", { time: minToLabel(extra.min) });
         Flow.step = err.field;
-        return invalid(err.field, html, err.chips || chipsFor(err.field));
+        return invalid(err.field, html, err.chips || chipsFor(err.field), err.code === "email" ? "email" : null);
       }
       const next = nextStep();
       let prefix = "";
-      if (r.changed.length) prefix = changedText(r.changed) + " ";
-      else if (r.added.length && !(r.added.length === 1 && r.added[0] === o.step)) prefix = ackText(r.added, o.intro);
+      const onlyContact = r.added.length && r.added.every((k) => k === "phone" || k === "email");
+      if (r.changed.length) prefix = changedText(r.changed) + " " + contactAck(r.added);
+      else if (onlyContact) prefix = contactAck(r.added);
+      else if (r.added.length && !(r.added.length === 1 && r.added[0] === o.step)) prefix = ackText(r.added, o.intro, o.greeted);
+      if (o.multiNote) prefix += o.multiNote;                     // "I'll happily book 2 appointments — let's start with the first one."
+      if (r.ask && next !== "submit") return askStep(r.ask, { prefix });
       // Recommend the right specialist as soon as we know the reason (and the date)
       const rec = recStaff(d);
       if (Flow.active === "book" && rec && !d.staff && d.date && !Flow.recNoted && next !== "staff") {
@@ -1593,7 +1881,7 @@
     function fieldFromText(n) {
       if (ST && new RegExp(`\\b(${[ST.singular, ...(ST.words || []), ...(ST.titles || [])].join("|")})\\b`).test(n)) return BOOK_STEPS.includes("staff") && Flow.active === "book" ? "staff" : null;
       if (/\bname\b/.test(n)) return "name";
-      if (/\b(phone|number|mobile)\b/.test(n)) return "phone";
+      if (/\b(phone|number|mobile|email|e mail|contact)\b/.test(n)) return "contact";
       if (/\b(date|day)\b/.test(n)) return "date";
       if (/\b(time|hour)\b/.test(n)) return "time";
       if (Flow.active === "book") for (const [id, f] of Object.entries(FIELDS)) if (BOOK_STEPS.includes(id) && new RegExp(`\\b(${f.words || f.label.toLowerCase()})\\b`).test(n)) return id;
@@ -1606,12 +1894,12 @@
        3rd+ wrong attempt → also offer the phone number
        The counter resets as soon as the customer enters something valid. */
     function resetFails() { Flow.failField = null; Flow.failCount = 0; }
-    function invalid(field, detailedHtml, chips) {
+    function invalid(field, detailedHtml, chips, shortKey) {
       Flow.failCount = Flow.failField === field ? Flow.failCount + 1 : 1;
       Flow.failField = field;
       let html = detailedHtml;
       if (Flow.failCount >= 2) {
-        const options = (FIELDS[field] && FIELDS[field].shortErrors) || SHORT_ERRORS[field] || SHORT_ERRORS.field;
+        const options = (FIELDS[field] && FIELDS[field].shortErrors) || SHORT_ERRORS[shortKey || field] || SHORT_ERRORS.field;
         html = fill(options[(Flow.failCount - 2) % options.length], hoursTokens(null));   // rotates → never the same line twice in a row
       }
       if (Flow.failCount >= 3) html += "<br>" + tx("havingTrouble");
@@ -1619,7 +1907,7 @@
     }
     const stepInvalidText = (step) => {
       if (FIELDS[step]) return fill(FIELDS[step].invalid);
-      return tx({ name: "nameInvalid", phone: "phoneInvalid", date: "dateUnclear", time: "timeUnclear", staff: "staffInvalid", confirm: "confirmInvalid", editPick: "confirmInvalid" }[step]);
+      return tx({ name: "nameInvalid", contact: "contactInvalid", date: "dateUnclear", time: "timeUnclear", staff: "staffInvalid", confirm: "confirmInvalid", editPick: "confirmInvalid" }[step]);
     };
 
     /* =====================================================================
@@ -1642,13 +1930,36 @@
       }
       if (MY_BOOKING_RE.test(n)) { showMyBookings(); return continuePrompt(); }
 
+      // "How many bookings?" → set up one booking per person
+      if (step === "count") {
+        const m = n.match(new RegExp(`\\b${NUM}\\b`));
+        const c = m ? Math.min(toNum(m[1]) || 0, 6) : 0;
+        if (c >= 1) {
+          Flow.pending = ORDINAL_WHO.slice(0, Math.max(c - 1, 0)).map((who) => ({ who, samePerson: BK.multiPerson === false }));
+          const se = Flow.startE || { fields: {} }, greeted = Flow.startGreeted;
+          Flow.startE = null; Flow.step = null;
+          const multiNote = Flow.pending.length ? tx("multiIntroN", { count: c, nouns: nounPlural }) : "";
+          return hasData(se) ? advance(applyEntities(se), { intro: true, greeted, multiNote }) : askStep(stepsOf()[0], multiNote ? { prefix: multiNote } : {});
+        }
+        if (!a.question) return invalid("count", tx("askCount", { nouns: nounPlural }), ["2", "3", "4"]);
+      }
+      // Next person in a group booking: "same person" / "same" reuses the previous details
+      if (Flow.prev && /\bsame\b/.test(n) && (step === "name" || step === "contact")) {
+        const p = Flow.prev, e0 = { fields: {} };
+        if (step === "name" || /\bperson\b/.test(n)) { e0.name = p.name; }
+        if (p.phone) e0.phone = p.phone;
+        if (p.email) e0.email = p.email;
+        return advance(applyEntities(e0), { step });
+      }
+
       const confirming = step === "confirm" || step === "editPick";
       const e = extractEntities(text, confirming ? null : step);
-      if (book && ((s.book || 0) >= 3 || hasCore(e)) && !a.question) {
-        Object.entries(textFieldFrom(a)).forEach(([id, v]) => { if (e.fields[id] == null) e.fields[id] = v; });
+      // Service words mid-booking ("cleaning", "and surgery") are the reason for the visit, not a name
+      if (book && ((s.book || 0) >= 3 || hasCore(e) || a.tokens.length <= 4) && !a.question) {
+        Object.entries(textFieldFrom(a)).forEach(([id, v]) => { if (e.fields[id] == null && Flow.data[id] == null) e.fields[id] = v; });
       }
       const textAdded = Object.keys(e.fields).some((id) => FIELDS[id] && FIELDS[id].type === "text" && Flow.data[id] == null);
-      const dataCore = !!(e.name || e.phone || e.date || e.dateError || e.time != null || e.timeError || e.staff || e.anyStaff || e.earliest ||
+      const dataCore = !!(e.name || e.phone || e.email || e.emailError || e.phoneError || e.contactPref || e.date || e.dateError || e.time != null || e.timeError || e.staff || e.anyStaff || e.earliest ||
         Object.keys(e.fields).some((id) => FIELDS[id] && FIELDS[id].type !== "text"));
       const data = dataCore || !!e.part || textAdded;
       let ans = buildAnswer(a, e, true);
@@ -1657,11 +1968,17 @@
       if (a.question && picked && !a.urgent && /\b(cost|costs|price|how much|how long|when|what time|it|details|info)\b/.test(n) &&
           (!ans || /\b(it|this|that)\b/.test(n))) ans = { html: fill(picked.info), chips: null };
 
+      if (step === "contact" && !data && !a.question && a.tokens.length <= 4) {
+        const want = /\bboth\b/.test(n) ? "both" : /\b(e ?mail|mail)\b/.test(n) ? "email" : /\b(phone|number|call|text|mobile|cell|whatsapp)\b/.test(n) ? "phone" : null;
+        if (want) { Flow.contactWant = want; return askStep("contact"); }
+      }
+
       // Free-text fields (e.g. reason for visit) — unless it's clearly a question, new data or an emergency
       const f = FIELDS[step];
       if (f && f.type === "text" && !dataCore && !e.part && !a.question && !(a.urgent && a.tokens.length > 4)) {
         if (a.gibberish || text.trim().length < 2) return invalid(step, fill(f.invalid), chipsFor(step));
-        return advance(applyEntities({ fields: { [step]: text.trim().slice(0, 120) } }), { step });
+        const mapped = textFieldFrom(a)[step];                         // "cleaning" → "Teeth cleaning"
+        return advance(applyEntities({ fields: { [step]: mapped || cap(text.trim().replace(/s+/g, " ").slice(0, 120)) } }), { step });
       }
 
       // A plain name at the name step is the answer (even if it matches a staff surname, e.g. "Omar Khan").
@@ -1688,6 +2005,12 @@
           if (candidate && nameValid(candidate)) e.name = titleCase(candidate);
         }
         return advance(applyEntities(e), { step });
+      }
+
+      // "Phone", "Email" or "Both" as an answer to the contact question
+      if (step === "contact" && !data) {
+        const want = /\bboth\b/.test(n) ? "both" : /\b(e ?mail|mail)\b/.test(n) ? "email" : /\b(phone|number|call|text|mobile|cell|whatsapp)\b/.test(n) ? "phone" : null;
+        if (want && !a.question) { Flow.contactWant = want; return askStep("contact"); }
       }
 
       // 3) Confirmation step
@@ -1725,29 +2048,69 @@
       const rec = {
         id: Date.now(), business: B.name,
         type: book ? "new" : d.cancelOnly ? "cancel" : "reschedule",
-        rows: book ? summaryRows(d) : [["Name", d.name], ["Phone", d.phone], ["Date", d.date && !d.cancelOnly ? fmtDate(d.date) : ""], ["Time", d.time != null && !d.cancelOnly ? timeLabel(d.time) : ""], ["Request", d.cancelOnly ? "Cancel" : "Reschedule"]],
+        rows: book ? summaryRows(d) : [["Name", d.name], ["Phone", d.phone || ""], ["Email", d.email || ""], ["Date", d.date && !d.cancelOnly ? fmtDate(d.date) : ""], ["Time", d.time != null && !d.cancelOnly ? timeLabel(d.time) : ""], ["Request", d.cancelOnly ? "Cancel" : "Reschedule"]],
         createdAt: new Date().toISOString()
       };
+      if (book && d.date && d.time != null) {
+        rec.ics = { date: toISO(d.date), time: d.time, duration: BK.duration || 60, location: `${B.name}, ${B.address}, ${B.city}`,
+          title: `${cap(noun)} at ${B.name}`, description: rec.rows.filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join("\n") };
+      }
+      const group = [...(Flow.group || []), rec];
+      const firstBooking = (Flow.group || [])[0];
       endFlow();
       saveRequest(rec);   // In production: POST this to your backend → email / WhatsApp / Google Sheets / CRM
       if (rec.type === "new") SESSION.bookings.push(rec);
+      rec.person = { name: d.name, phone: d.phone || null, email: d.email || null };
 
-      if (rec.type === "new") bot(tx("sentNew"));
-      else if (rec.type === "cancel") bot(tx("sentCancel"));
+      // More bookings to make (2 appointments, me and my wife, a second property…) → next one, no closing yet
+      if (book && pending.length) {
+        const next = pending[0];
+        const item = typeof next === "string" ? { who: next } : next;
+        Flow.active = "book"; Flow.pending = pending.slice(1); Flow.group = group;
+        Flow.prev = rec.person; Flow.prevPhone = d.phone || d.email;
+        const saved = tx("groupSaved", { i: group.length, n: group.length + pending.length }) + " ";
+        if (item.samePerson || item.preset) {                    // same customer, e.g. a second property viewing
+          const e2 = { fields: { ...(item.preset || {}) } };
+          if (item.samePerson) { e2.name = d.name; if (d.phone) e2.phone = d.phone; if (d.email) e2.email = d.email; }
+          const r2 = applyEntities(e2);
+          return advance({ ...r2, added: [], changed: [] }, { multiNote: saved + tx(item.preset ? "multiNextItem" : "multiNextSame", { item: esc(item.who) }) + " " });
+        }
+        if (BK.groupShare) {                                     // e.g. a friend joining the same trial class, day and time
+          const e2 = { fields: {} };
+          BK.groupShare.forEach((k) => { if (k === "date") e2.date = d.date; else if (k === "time") e2.time = d.time; else if (d[k] != null) e2.fields[k] = d[k]; });
+          applyEntities(e2);
+        }
+        return askStep(BOOK_STEPS[0], { prefix: saved + tx("multiNext", { who: esc(item.who) }) + " ", html: tx("multiAskName", { who: esc(item.who) }) });
+      }
+
+      const lead = firstBooking ? firstBooking.person : rec.person;
+      SESSION.lastName = lead.name ? firstName(lead.name) : SESSION.lastName;
+      const how = lead.phone && lead.email ? "Both" : lead.email ? "Email" : "Phone";
+      const contactLine = tx("contactLine" + how, { team: T.team });
+      const calBtn = (r, label) => (r.ics ? `<button type="button" class="cal-btn" data-ics="${r.id}">${label}</button>` : "");
+      if (rec.type === "new" && group.length > 1) {
+        // ONE combined summary of every booking, then ONE closing message
+        const extra = T.closingExtra ? " " + T.closingExtra : "";
+        bot(tx("groupSummary", { all: group.length === 2 ? "both" : "all " + group.length, nouns: nounPlural }) + group.map(recordCard).join(""));
+        bot(tx("closingGroup", { first: esc(firstName(lead.name || "")), All: group.length === 2 ? "Both" : "All " + group.length, nouns: nounPlural, contactLine, extra, signoff: T["signoff" + how] }) +
+          "<br>" + group.map((r, i) => calBtn(r, `${T.calendarButton} (${i + 1})`)).join(" "));
+      } else if (rec.type === "new") {
+        const vals = { noun, date: fmtShort(d.date), time: timeLabel(d.time), staffWith: d.staff ? ` with ${d.staff.name}` : "" };
+        Object.keys(FIELDS).forEach((id) => { let v = fieldValueText(id, d[id]); if (FIELDS[id].closingLower) v = v.toLowerCase(); vals[id] = v; });
+        const summary = fill(BK.closingLine || T.closingLine, vals);
+        const extra = T.closingExtra ? " " + T.closingExtra : "";
+        bot(tx("closing", { first: esc(firstName(d.name)), summary, contactLine, extra, signoff: T["signoff" + how] }) + (rec.ics ? "<br>" + calBtn(rec, T.calendarButton) : ""));
+      }
+      else if (rec.type === "cancel") bot(tx("sentCancel") + " " + contactLine);
       else bot(tx("sentResched", { date: fmtDate(d.date), time: timeLabel(d.time) }));
 
-      // Booking for more than one person → start the next booking right away
-      if (book && pending.length) {
-        const who = pending[0];
-        Flow.active = "book"; Flow.pending = pending.slice(1); Flow.prevPhone = d.phone;
-        return askStep(BOOK_STEPS[0], { prefix: tx("multiNext", { who }) + " ", html: tx("multiAskName", { who }) });
-      }
-      bot(tx("anythingElse"), BOT.quickReplies);
+      SESSION.phase = "askedElse";                            // ask "anything else?" only once
+      bot(tx("anythingElseOnce"), BOT.quickReplies);
     }
 
     /* ---------- Requests: stored locally + announced to the host page ---------- */
     const STORE_KEY = "demochatbot_requests_" + (CONFIG.id || "default");
-    const SESSION = { bookings: [] };
+    const SESSION = { bookings: [], phase: null, lastName: null };
     function saveRequest(rec) {
       try {
         const all = JSON.parse(localStorage.getItem(STORE_KEY)) || [];
@@ -1806,9 +2169,12 @@
       chatBody.appendChild(sep);
       bot(esc(BOT.welcome.replace("{business}", B.name)), BOT.quickReplies);
     }
-    function restart() {
+    function restart() {                                     // "Start new chat"
       session++; queue = Promise.resolve(); endFlow();
+      clearTimeout(batchTimer); pending = []; pendingRows.length = 0;
+      SESSION.phase = null;
       chatBody.innerHTML = ""; setChips([]);
+      clearState();
       welcome();
     }
 
@@ -1837,10 +2203,13 @@
     const api = {
       open: openChat,
       close: closeChat,
+      restart,
+      _test: (o) => Object.assign(TEST, o),                // tests only: speed up typing delays / batching
       book: () => { openChat(); if (!Flow.active) queue.then(() => sendUser(BOT.quickReplies[0])); },
       config: CONFIG
     };
-    const mountNow = () => { document.body.appendChild(host); if (opts.open) later(openChat, opts.openDelay || 300); };
+    const restored = restoreState();                        // same visit → continue the saved chat
+    const mountNow = () => { document.body.appendChild(host); if (opts.open || restored === "open") later(openChat, opts.openDelay || 300); };
     if (document.body) mountNow(); else document.addEventListener("DOMContentLoaded", mountNow);
     return { api, destroy };
   }

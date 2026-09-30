@@ -24,6 +24,15 @@ AI chatbot demos for five industries, built on **one engine with separate config
 - Give a polite one-line reply to anything off-topic, including other industries and prompt-injection attempts.
 - Use a dark design with an accent colour per business. They're mobile-friendly and isolated with Shadow DOM.
 
+## Conversation features
+
+- **Waits for you to finish:** every message and keystroke restarts a 4-second timer. Then all queued messages are read together and answered in one reply.
+- **Phone and/or email:** either or both are accepted and validated, with friendly, varied error messages.
+- **Multiple bookings:** "2 appointments", "for me and my wife", "2 tables", two properties or a friend joining a trial class. The bot books each one in turn (reusing the same contact if you like), then shows one combined summary.
+- **Multiple services in one booking:** e.g. "cleaning and surgery" or "haircut and gel nails".
+- **After booking:** one warm closing message with an "Add to Calendar" (.ics) button, then "anything else?" once and a friendly goodbye.
+- **Other touches:** "Seen" ticks, a "Start new chat" button, and the chat survives a page refresh during the same visit.
+
 ## Add a chatbot to any website
 
 ```html
